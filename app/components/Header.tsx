@@ -2,6 +2,7 @@
 
 import { ChefHat, Menu, MessageCircle, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
+import { appPath } from "@/app/lib/site-path";
 import type { BusinessSettings } from "@/app/lib/types";
 
 type HeaderProps = {
@@ -31,7 +32,7 @@ export function Header({ settings, cartCount, onCartOpen }: HeaderProps) {
           <a href="#menu" onClick={() => setMenuOpen(false)}>Menú</a>
           <a href="#recomendados" onClick={() => setMenuOpen(false)}>Recomendados</a>
           <a href="#como-pedir" onClick={() => setMenuOpen(false)}>Cómo pedir</a>
-          <a href="/admin">Administración</a>
+          <a href={appPath("/admin/")}>Administración</a>
         </nav>
 
         <div className="header-actions">
@@ -54,4 +55,3 @@ export function Header({ settings, cartCount, onCartOpen }: HeaderProps) {
     </header>
   );
 }
-

@@ -119,6 +119,13 @@ npm run lint
 
 ## Despliegue
 
+### GitHub Pages
+
+Cada cambio enviado a `feature/cocina-miguelon` ejecuta el flujo
+`.github/workflows/deploy-pages.yml`. El flujo genera una exportación estática
+con la ruta base `/RomaMenu/` y publica el catálogo en
+`https://tusalon.github.io/RomaMenu/`.
+
 ### OpenAI Sites / Cloudflare
 
 El proyecto conserva la integración `sites()` y genera salida ESM compatible con Cloudflare. Configura en el servicio de hosting las mismas variables de `.env.local` y ejecuta el flujo de publicación de Sites.
@@ -143,4 +150,3 @@ Tras desplegar, añade el dominio público en **Supabase > Authentication > URL 
 ## Licencia
 
 Proyecto privado de La Cocina de Miguelón.
-

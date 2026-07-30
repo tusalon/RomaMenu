@@ -1,9 +1,9 @@
 "use client";
 
 import { ChefHat, CircleAlert, LockKeyhole } from "lucide-react";
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { isSupabaseConfigured, signInAdmin } from "@/app/lib/repository";
+import { appPath } from "@/app/lib/site-path";
 
 export function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -17,7 +17,7 @@ export function AdminLogin() {
     setLoading(true);
     try {
       await signInAdmin(email, password);
-      window.location.href = "/admin";
+      window.location.href = appPath("/admin/");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No pudimos iniciar sesión.");
     } finally {
@@ -28,10 +28,10 @@ export function AdminLogin() {
   return (
     <main className="login-page">
       <section className="login-art">
-        <Link className="brand" href="/">
+        <a className="brand" href={appPath("/")}>
           <span className="brand-mark"><ChefHat size={25} /></span>
           <span><strong>La Cocina</strong><small>de Miguelón</small></span>
-        </Link>
+        </a>
         <div>
           <h1>Todo bajo control, desde una sola cocina.</h1>
           <p>Gestiona pedidos, productos, entregas y la información del negocio desde tu panel privado.</p>
@@ -49,7 +49,7 @@ export function AdminLogin() {
             {error && <div className="form-error"><CircleAlert size={17} /> {error}</div>}
             {!isSupabaseConfigured() && <div className="login-help">Modo demostración: usa cualquier correo y una contraseña de 6 caracteres o más. Con Supabase conectado, solo funcionarán las cuentas administrativas reales.</div>}
             <button className="button button-primary button-block" type="submit" disabled={loading}>{loading ? "Verificando…" : "Entrar al panel"}</button>
-            <Link className="button button-ghost button-block" href="/">Volver al catálogo</Link>
+            <a className="button button-ghost button-block" href={appPath("/")}>Volver al catálogo</a>
           </form>
         </div>
       </section>

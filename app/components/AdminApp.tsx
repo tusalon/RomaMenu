@@ -24,9 +24,9 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { formatCurrency, formatDate, orderStatusLabels } from "@/app/lib/format";
+import { appPath } from "@/app/lib/site-path";
 import {
   archiveProduct,
   fetchAdminData,
@@ -82,7 +82,7 @@ export function AdminApp() {
   useEffect(() => {
     hasAdminSession().then((active) => {
       if (!active) {
-        window.location.href = "/admin/login";
+        window.location.href = appPath("/admin/login/");
         return;
       }
       fetchAdminData()
@@ -97,7 +97,7 @@ export function AdminApp() {
 
   async function handleLogout() {
     await signOutAdmin();
-    window.location.href = "/admin/login";
+    window.location.href = appPath("/admin/login/");
   }
 
   function navigate(next: Section) {
@@ -112,7 +112,7 @@ export function AdminApp() {
   return (
     <div className="admin-shell" style={{ "--brand": catalog.settings.color_primario, "--accent": catalog.settings.color_secundario } as React.CSSProperties}>
       <aside className={sidebarOpen ? "admin-sidebar open" : "admin-sidebar"}>
-        <Link className="brand" href="/"><span className="brand-mark"><ChefHat size={24} /></span><span><strong>La Cocina</strong><small>de Miguelón</small></span></Link>
+        <a className="brand" href={appPath("/")}><span className="brand-mark"><ChefHat size={24} /></span><span><strong>La Cocina</strong><small>de Miguelón</small></span></a>
         <nav className="admin-nav" aria-label="Panel administrativo">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -126,7 +126,7 @@ export function AdminApp() {
           <div className="admin-title"><small>{title.eyebrow}</small><h1>{title.title}</h1></div>
           <div className="admin-top-actions">
             {!isSupabaseConfigured() && <span className="admin-mode">Modo demostración</span>}
-            <Link className="button button-secondary button-small" href="/" target="_blank">Ver tienda</Link>
+            <a className="button button-secondary button-small" href={appPath("/")} target="_blank">Ver tienda</a>
             <button className="icon-button admin-mobile-menu" type="button" onClick={() => setSidebarOpen((value) => !value)}>{sidebarOpen ? <X size={20} /> : <Menu size={20} />}</button>
           </div>
         </header>
