@@ -40,14 +40,21 @@ test("renders the protected admin entry surface", async () => {
   assert.match(html, /Panel administrativo/);
 });
 
-test("ships Supabase security and no starter preview", async () => {
-  const [schema, packageJson] = await Promise.all([
+test("ships Supabase security, Cloudinary uploads and admin deletion actions", async () => {
+  const [schema, packageJson, repository, adminApp] = await Promise.all([
     readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/repository.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AdminApp.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(schema, /enable row level security/i);
   assert.match(schema, /crear_pedido_publico/);
-  assert.match(schema, /product-images/);
+  assert.doesNotMatch(schema, /product-images/);
+  assert.match(repository, /api\.cloudinary\.com/);
+  assert.match(repository, /deleteOrder/);
+  assert.match(repository, /deleteDeliveryZone/);
+  assert.match(adminApp, /Eliminar pedido/);
+  assert.match(adminApp, /Eliminar zona/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("app/_sites-preview/SkeletonPreview.tsx", projectRoot)));
   await assert.rejects(access(new URL("app/_sites-preview/preview.css", projectRoot)));

@@ -292,6 +292,8 @@ img { display: block; max-width: 100%; }
 .status-badge.entregado { background: #e1f1df; color: #35643b; }
 .status-badge.cancelado { background: #f7dfdd; color: #93342d; }
 .table-action { border: 0; background: transparent; color: var(--brand); font-size: 10px; font-weight: 800; cursor: pointer; }
+.table-row-actions { display: flex; align-items: center; gap: 10px; }
+.table-action.danger { display: inline-flex; align-items: center; gap: 4px; color: #a8322c; }
 .admin-toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 18px; }
 .admin-toolbar .search-box { flex: 1; min-width: 240px; }
 .admin-toolbar select, .admin-toolbar input[type="date"] { min-height: 43px; padding: 0 12px; border: 1px solid #ded6ce; border-radius: 11px; background: white; font-size: 11px; }
@@ -318,6 +320,7 @@ img { display: block; max-width: 100%; }
 .image-upload strong, .image-upload small { display: block; }
 .image-upload strong { margin-top: 7px; color: var(--ink); font-size: 11px; }
 .image-upload small { margin-top: 3px; font-size: 9px; }
+.image-upload.uploading { opacity: .7; cursor: wait; }
 .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
 .settings-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .settings-save { position: sticky; bottom: 16px; display: flex; justify-content: flex-end; margin-top: 18px; padding: 12px; border: 1px solid #e2dad2; border-radius: 15px; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); box-shadow: 0 12px 30px rgba(50,35,27,.1); }
@@ -333,6 +336,8 @@ img { display: block; max-width: 100%; }
 .simple-list strong { font-size: 11px; }
 .simple-list small { margin-top: 4px; overflow: hidden; color: var(--muted); font-size: 9px; white-space: nowrap; text-overflow: ellipsis; }
 .simple-list button { border: 0; cursor: pointer; }
+.simple-list > div > .simple-list-actions { min-width: auto; flex: 0 0 auto; display: flex; align-items: center; gap: 7px; }
+.list-delete-button { min-height: 28px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 8px; background: #fae8e6; color: #972f29; font-size: 9px; font-weight: 800; }
 .order-detail { padding: 20px; }
 .order-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .detail-block { padding: 15px; border-radius: 12px; background: #faf7f3; }

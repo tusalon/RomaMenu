@@ -16,6 +16,8 @@ import type {
 const DEMO_CATALOG_KEY = "miguelon-demo-catalog";
 const DEMO_ORDERS_KEY = "miguelon-demo-orders";
 const DEMO_SESSION_KEY = "miguelon-demo-admin";
+const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+const cloudinaryUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -341,17 +343,92 @@ export async function updateOrder(
   writeStorage(DEMO_ORDERS_KEY, orders);
 }
 
-export async function uploadProductImage(file: File) {
+export async function deleteOrder(orderId: string) {
   const supabase = getSupabase();
-  if (!supabase) return URL.createObjectURL(file);
-  const extension = file.name.split(".").pop() || "jpg";
-  const path = `products/${crypto.randomUUID()}.${extension}`;
-  const { error } = await supabase.storage.from("product-images").upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("pedidos")
+      .delete()
+      .eq("id", orderId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("El pedido no existe o no tienes permiso para eliminarlo.");
+    return;
+  }
+
+  writeStorage(
+    DEMO_ORDERS_KEY,
+    getDemoOrders().filter((order) => order.id !== orderId),
+  );
+}
+
+export async function deleteDeliveryZone(zoneId: string) {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("zonas_entrega")
+      .delete()
+      .eq("id", zoneId)
+      .select("id")
+      .maybeSingle();
+    if (error?.code === "23503") {
+      throw new Error(
+        "Esta zona está vinculada a pedidos existentes. Desactívala para conservar el historial.",
+      );
+    }
+    if (error) throw error;
+    if (!data) throw new Error("La zona no existe o no tienes permiso para eliminarla.");
+    return;
+  }
+
+  const catalog = getDemoCatalog();
+  saveDemoCatalog({
+    ...catalog,
+    zones: catalog.zones.filter((zone) => zone.id !== zoneId),
   });
-  if (error) throw error;
-  return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+}
+
+export function isCloudinaryConfigured() {
+  return Boolean(cloudinaryCloudName && cloudinaryUploadPreset);
+}
+
+export async function uploadProductImage(file: File) {
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if (!allowedTypes.has(file.type)) {
+    throw new Error("Usa una imagen JPG, PNG o WebP.");
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("La imagen no puede superar 8 MB.");
+  }
+  if (!cloudinaryCloudName || !cloudinaryUploadPreset) {
+    throw new Error(
+      "Cloudinary aún no está configurado. Añade el cloud name y el unsigned upload preset.",
+    );
+  }
+
+  const body = new FormData();
+  body.append("file", file);
+  body.append("upload_preset", cloudinaryUploadPreset);
+  body.append("folder", "roma-menu/products");
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudinaryCloudName)}/image/upload`,
+    { method: "POST", body },
+  );
+  const result = (await response.json()) as {
+    secure_url?: string;
+    error?: { message?: string };
+  };
+
+  if (!response.ok || !result.secure_url) {
+    throw new Error(result.error?.message || "Cloudinary no pudo guardar la imagen.");
+  }
+
+  return result.secure_url.replace(
+    "/upload/",
+    "/upload/f_auto,q_auto,c_limit,w_1400/",
+  );
 }
 
 export { isSupabaseConfigured };

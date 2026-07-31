@@ -21,6 +21,8 @@ jobs:
     env:
       GITHUB_PAGES: "true"
       NEXT_PUBLIC_BASE_PATH: /RomaMenu
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ vars.CLOUDINARY_CLOUD_NAME }}
+      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ vars.CLOUDINARY_UPLOAD_PRESET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

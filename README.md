@@ -13,7 +13,8 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - Confirmación con número único de pedido.
 - Acceso administrativo con Supabase Auth.
 - Dashboard, pedidos, productos, categorías, zonas, pagos y configuración del negocio.
-- Subida de fotografías a Supabase Storage.
+- Eliminación confirmada de pedidos y de zonas que no tengan pedidos asociados.
+- Subida y entrega optimizada de fotografías mediante Cloudinary.
 - Row Level Security para proteger pedidos y operaciones administrativas.
 - Modo demostración local cuando Supabase aún no está configurado.
 
@@ -22,7 +23,8 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - React 19 y TypeScript.
 - Vite mediante Vinext, conservando rutas compatibles con Next.
 - Tailwind CSS 4 y CSS personalizado.
-- Supabase Database, Auth y Storage.
+- Supabase Database y Auth.
+- Cloudinary para almacenamiento y optimización de imágenes.
 - Lucide React para iconografía.
 
 ## Instalación
@@ -35,7 +37,7 @@ npm install
 Copy-Item .env.example .env.local
 ```
 
-Completa `.env.local` con la URL y la clave pública `anon` de tu proyecto Supabase. No uses la clave `service_role` en esta aplicación.
+Completa `.env.local` con la URL y la clave pública `anon` de Supabase, además del `cloud name` y el `unsigned upload preset` de Cloudinary. No uses la clave `service_role` en esta aplicación.
 
 ## Configurar Supabase
 
@@ -46,7 +48,14 @@ Completa `.env.local` con la URL y la clave pública `anon` de tu proyecto Supab
 5. En **Authentication > Users**, crea el primer usuario administrativo con correo y contraseña.
 6. Copia su UUID y ejecuta [`supabase/create-first-admin.sql`](supabase/create-first-admin.sql), sustituyendo los valores indicados.
 
-El esquema crea el bucket público `product-images` y sus políticas. Solo administradores activos pueden subir, cambiar o eliminar imágenes.
+## Configurar Cloudinary
+
+1. Crea un `unsigned upload preset` para imágenes en Cloudinary.
+2. Limita el preset a JPG, PNG y WebP, con un máximo recomendado de 8 MB.
+3. Añade `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` y `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` a `.env.local`.
+4. En GitHub, crea las variables `CLOUDINARY_CLOUD_NAME` y `CLOUDINARY_UPLOAD_PRESET` para el flujo de Pages.
+
+Las imágenes se guardan en `roma-menu/products` dentro de Cloudinary. Supabase conserva únicamente la URL optimizada en el registro del producto.
 
 ## Ejecutar localmente
 
@@ -104,7 +113,7 @@ app/
 public/
   og.png                  Tarjeta social de la marca
 supabase/
-  schema.sql              Tablas, índices, funciones, triggers, RLS y Storage
+  schema.sql              Tablas, índices, funciones, triggers y RLS
   seed.sql                Categorías, productos, zonas y pagos de demostración
   create-first-admin.sql  Plantilla para autorizar al primer administrador
 .env.example              Variables públicas necesarias
@@ -134,7 +143,7 @@ El proyecto conserva la integración `sites()` y genera salida ESM compatible co
 
 1. Conecta este repositorio al proveedor.
 2. Usa `npm install` como instalación y `npm run build` como compilación.
-3. Configura `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en las variables del entorno.
+3. Configura las variables públicas de Supabase y Cloudinary indicadas en `.env.example`.
 4. Publica la salida generada por el adaptador Vinext del proyecto.
 
 Tras desplegar, añade el dominio público en **Supabase > Authentication > URL Configuration**. Nunca publiques `.env.local` ni una clave privada.

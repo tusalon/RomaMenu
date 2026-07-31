@@ -396,16 +396,3 @@ drop policy if exists "Administradores ven items" on public.pedido_items;
 create policy "Administradores ven items" on public.pedido_items for select to authenticated using (public.es_admin());
 drop policy if exists "Administradores ven historial" on public.historial_estados;
 create policy "Administradores ven historial" on public.historial_estados for select to authenticated using (public.es_admin());
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('product-images', 'product-images', true, 5242880, array['image/jpeg','image/png','image/webp'])
-on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
-
-drop policy if exists "Imagenes de productos publicas" on storage.objects;
-create policy "Imagenes de productos publicas" on storage.objects for select to public using (bucket_id = 'product-images');
-drop policy if exists "Admins suben imagenes" on storage.objects;
-create policy "Admins suben imagenes" on storage.objects for insert to authenticated with check (bucket_id = 'product-images' and public.es_admin());
-drop policy if exists "Admins actualizan imagenes" on storage.objects;
-create policy "Admins actualizan imagenes" on storage.objects for update to authenticated using (bucket_id = 'product-images' and public.es_admin()) with check (bucket_id = 'product-images' and public.es_admin());
-drop policy if exists "Admins eliminan imagenes" on storage.objects;
-create policy "Admins eliminan imagenes" on storage.objects for delete to authenticated using (bucket_id = 'product-images' and public.es_admin());
