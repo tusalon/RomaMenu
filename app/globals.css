@@ -15,7 +15,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
 body {
   margin: 0;
   background: var(--background);
@@ -381,6 +381,7 @@ img { display: block; max-width: 100%; }
 }
 
 @media (max-width: 760px) {
+  html { scroll-padding-top: 76px; }
   .shell { width: min(100% - 28px, 620px); }
   .header-inner { min-height: 68px; }
   .brand-mark { width: 39px; height: 39px; }
@@ -434,6 +435,10 @@ img { display: block; max-width: 100%; }
 
 @media (display-mode: standalone) {
   .pwa-install-button { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 @media (max-width: 500px) {

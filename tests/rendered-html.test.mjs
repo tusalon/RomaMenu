@@ -53,6 +53,20 @@ test("renders the protected admin entry surface", async () => {
   assert.match(adminHtml, /admin\.webmanifest/);
 });
 
+test("keeps mobile section navigation responsive and accessible", async () => {
+  const [header, styles] = await Promise.all([
+    readFile(new URL("../app/components/Header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(header, /setMenuOpen\(false\)/);
+  assert.match(header, /scrollIntoView/);
+  assert.match(header, /history\.pushState/);
+  assert.match(header, /aria-controls="main-navigation"/);
+  assert.match(styles, /scroll-padding-top:\s*76px/);
+  assert.match(styles, /prefers-reduced-motion:\s*reduce/);
+});
+
 test("ships Supabase security, Cloudinary uploads and admin deletion actions", async () => {
   const [schema, packageJson, repository, adminApp] = await Promise.all([
     readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),
