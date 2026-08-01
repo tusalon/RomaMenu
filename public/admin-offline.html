@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#8f241f" />
+    <title>Sin conexión · Miguelón Admin</title>
+    <style>
+      :root { color-scheme: light; font-family: Arial, sans-serif; background: #fbf5ea; color: #2f2723; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
+      main { width: min(430px, 100%); padding: 36px; border: 1px solid #eadbcd; border-radius: 24px; background: white; box-shadow: 0 20px 55px rgba(63, 31, 18, .12); text-align: center; }
+      .mark { width: 68px; height: 68px; margin: 0 auto 22px; display: grid; place-items: center; border-radius: 20px; background: #8f241f; color: #fbf5ea; font-size: 34px; }
+      h1 { margin: 0 0 12px; font-family: Georgia, serif; font-size: 32px; font-weight: 500; }
+      p { margin: 0 0 25px; color: #766b64; line-height: 1.65; }
+      button { min-height: 46px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 14px; background: #8f241f; color: white; font: inherit; font-weight: 800; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">⌁</div>
+      <h1>Sin conexión</h1>
+      <p>El panel necesita internet para mostrar pedidos actualizados y guardar cambios de forma segura.</p>
+      <button type="button" onclick="window.location.reload()">Volver a intentar</button>
+    </main>
+  </body>
+</html>

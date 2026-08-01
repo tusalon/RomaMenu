@@ -16,6 +16,7 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - Eliminación confirmada de pedidos y de zonas que no tengan pedidos asociados.
 - Subida y entrega optimizada de fotografías mediante Cloudinary.
 - Alertas inmediatas de pedidos nuevos en el panel, con notificación del navegador y comprobación de respaldo.
+- PWA administrativa instalable y APK Android generada automáticamente por GitHub Actions.
 - Row Level Security para proteger pedidos y operaciones administrativas.
 - Modo demostración local cuando Supabase aún no está configurado.
 
@@ -27,6 +28,7 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - Supabase Database y Auth.
 - Cloudinary para almacenamiento y optimización de imágenes.
 - Lucide React para iconografía.
+- Capacitor 8 para empaquetar el panel como aplicación Android.
 
 ## Instalación
 
@@ -97,6 +99,7 @@ Una cuenta de Auth sin un perfil administrativo activo podrá autenticarse, pero
 - **Métodos de pago:** activa o desactiva las opciones visibles al cliente.
 - **Configuración:** cambia textos, contacto, moneda, estado abierto/cerrado y colores principales.
 - **Alertas:** pulsa **Activar alertas** una vez y acepta el permiso del navegador para recibir cada pedido nuevo mientras el panel esté abierto.
+- **Instalación PWA:** abre el panel en Chrome y pulsa **Instalar app** cuando aparezca. La instalación abre siempre el acceso administrativo y no añade enlaces de administración al catálogo público.
 
 ## Flujo seguro de pedidos
 
@@ -141,6 +144,22 @@ con la ruta base `/RomaMenu/` y publica el catálogo en
 
 El panel privado se abre directamente en
 `https://tusalon.github.io/RomaMenu/admin/`; el catálogo público no muestra ningún enlace hacia esa ruta.
+
+### PWA administrativa
+
+La ruta administrativa incluye un manifiesto propio, iconos de marca y un service worker limitado a `/admin/`. En Android o escritorio compatible, abre el panel, inicia sesión y pulsa **Instalar app**. La tienda pública conserva su enlace web normal y no promueve la instalación del panel.
+
+### APK Android desde GitHub Actions
+
+Cada cambio enviado a `feature/cocina-miguelon` ejecuta el flujo **Build Miguelón Admin APK**. Para descargarla:
+
+1. Abre la pestaña **Actions** del repositorio.
+2. Entra en la ejecución correcta de **Build Miguelón Admin APK**.
+3. En **Artifacts**, descarga **RomaMenu-Admin-APK**.
+4. Descomprime el archivo y copia `RomaMenu-Admin.apk` al teléfono.
+5. Abre el APK y permite la instalación desde esa fuente cuando Android lo solicite.
+
+La APK está firmada para que versiones posteriores puedan instalarse como actualizaciones. Abre directamente el acceso administrativo e incluye avisos nativos para pedidos detectados mientras la aplicación está ejecutándose. Las notificaciones con la aplicación totalmente cerrada requieren configurar Firebase/FCM y un emisor de servidor.
 
 ### OpenAI Sites / Cloudflare
 

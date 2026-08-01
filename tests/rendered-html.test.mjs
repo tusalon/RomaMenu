@@ -29,15 +29,28 @@ test("renders the public storefront with product content", async () => {
   assert.match(html, /Nuestro menú/);
   assert.match(html, /Pollo asado/);
   assert.match(html, /Ver carrito/);
+  assert.doesNotMatch(html, /admin\.webmanifest/);
+  assert.doesNotMatch(html, /pwa-install-button/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
 
 test("renders the protected admin entry surface", async () => {
-  const response = await render("/admin/login");
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /Bienvenido de vuelta/);
-  assert.match(html, /Panel administrativo/);
+  const [loginResponse, adminResponse] = await Promise.all([
+    render("/admin/login"),
+    render("/admin"),
+  ]);
+  assert.equal(loginResponse.status, 200);
+  assert.equal(adminResponse.status, 200);
+
+  const [loginHtml, adminHtml] = await Promise.all([
+    loginResponse.text(),
+    adminResponse.text(),
+  ]);
+  assert.match(loginHtml, /Bienvenido de vuelta/);
+  assert.match(loginHtml, /Panel administrativo/);
+  assert.match(loginHtml, /admin\.webmanifest/);
+  assert.match(loginHtml, /icons\/admin-192\.png/);
+  assert.match(adminHtml, /admin\.webmanifest/);
 });
 
 test("ships Supabase security, Cloudinary uploads and admin deletion actions", async () => {
@@ -58,4 +71,45 @@ test("ships Supabase security, Cloudinary uploads and admin deletion actions", a
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("app/_sites-preview/SkeletonPreview.tsx", projectRoot)));
   await assert.rejects(access(new URL("app/_sites-preview/preview.css", projectRoot)));
+});
+
+test("ships an installable admin PWA and an Android APK workflow", async () => {
+  const [manifestText, capacitorConfig, androidWorkflow, adminApp, pwaControls, rootLayout, serviceWorker] = await Promise.all([
+    readFile(new URL("../public/admin.webmanifest", import.meta.url), "utf8"),
+    readFile(new URL("../capacitor.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/build-android-apk.yml", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AdminApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AdminPwaControls.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../public/admin-notifications-sw.js", import.meta.url), "utf8"),
+  ]);
+  const manifest = JSON.parse(manifestText);
+
+  assert.equal(manifest.start_url, "./admin/");
+  assert.equal(manifest.scope, "./admin/");
+  assert.equal(manifest.display, "standalone");
+  assert.deepEqual(manifest.icons.map((icon) => icon.sizes), ["192x192", "512x512"]);
+  assert.match(capacitorConfig, /com\.tusalon\.romamenu\.admin/);
+  assert.match(capacitorConfig, /appStartPath:\s*"\/admin\/"/);
+  assert.match(androidWorkflow, /assembleRelease/);
+  assert.match(androidWorkflow, /RomaMenu-Admin\.apk/);
+  assert.match(androidWorkflow, /java-version: 21/);
+  assert.match(androidWorkflow, /chmod \+x \.\/gradlew/);
+  assert.match(androidWorkflow, /test -n "\$ANDROID_KEYSTORE_PASSWORD"/);
+  assert.match(adminApp, /LocalNotifications\.schedule/);
+  assert.match(pwaControls, /ADMIN_SCOPE = appPath\("\/admin\/"\)/);
+  assert.match(pwaControls, /navigator\.serviceWorker\.getRegistrations/);
+  assert.match(pwaControls, /registration\.unregister/);
+  assert.match(rootLayout, /CAPACITOR_BUILD === "true"/);
+  assert.doesNotMatch(rootLayout, /next\/font/);
+  assert.match(serviceWorker, /payload\.url \|\| self\.registration\.scope/);
+  assert.match(serviceWorker, /admin-offline\.html/);
+
+  await Promise.all([
+    access(new URL("../public/icons/admin-180.png", import.meta.url)),
+    access(new URL("../public/icons/admin-192.png", import.meta.url)),
+    access(new URL("../public/icons/admin-512.png", import.meta.url)),
+    access(new URL("../public/admin-offline.html", import.meta.url)),
+    access(new URL("../android/gradlew", import.meta.url)),
+  ]);
 });

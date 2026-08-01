@@ -1,5 +1,7 @@
 "use client";
 
+import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   BarChart3,
   BellRing,
@@ -62,14 +64,51 @@ type OrderAlert = { order: Order; count: number };
 const ORDER_POLL_MS = 30000;
 const ORDER_REFRESH_LIMIT = 50;
 const ADMIN_NOTIFICATION_WORKER = appPath("/admin-notifications-sw.js");
-const ADMIN_NOTIFICATION_SCOPE = appPath("/");
+const ADMIN_NOTIFICATION_SCOPE = appPath("/admin/");
+
+function nativePermissionStatus(display: string): NotificationSupport {
+  if (display === "granted" || display === "denied") return display;
+  return "default";
+}
+
+function notificationId(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return (hash & 0x7fffffff) || 1;
+}
 
 async function showOrderNotification(order: Order, currencySymbol: string) {
+  const title = `Nuevo pedido #${order.numero_pedido}`;
+  const body = `${order.nombre_cliente} · ${formatCurrency(order.total, currencySymbol)}`;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const permission = await LocalNotifications.checkPermissions();
+      if (permission.display !== "granted") return;
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notificationId(order.id),
+            title,
+            body,
+            extra: { url: appPath("/admin/") },
+            autoCancel: true,
+          },
+        ],
+      });
+    } catch {
+      // La alerta visible dentro del panel permanece disponible como respaldo.
+    }
+    return;
+  }
+
   if (!("Notification" in window) || window.Notification.permission !== "granted") return;
 
-  const title = `Nuevo pedido #${order.numero_pedido}`;
   const options: NotificationOptions = {
-    body: `${order.nombre_cliente} · ${formatCurrency(order.total, currencySymbol)}`,
+    body,
     data: { url: appPath("/admin/") },
     tag: order.id,
   };
@@ -126,19 +165,44 @@ export function AdminApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationSupport>(() => {
-    if (typeof window === "undefined") return "checking";
-    return "Notification" in window ? window.Notification.permission : "unsupported";
-  });
+  const [notificationPermission, setNotificationPermission] = useState<NotificationSupport>("checking");
   const [orderAlert, setOrderAlert] = useState<OrderAlert | null>(null);
   const knownOrderIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register(ADMIN_NOTIFICATION_WORKER, { scope: ADMIN_NOTIFICATION_SCOPE })
-        .catch(() => undefined);
+    let cancelled = false;
+    let notificationActionListener: ReturnType<typeof LocalNotifications.addListener> | undefined;
+
+    async function checkNotificationPermission() {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const permission = await LocalNotifications.checkPermissions();
+          if (!cancelled) setNotificationPermission(nativePermissionStatus(permission.display));
+          notificationActionListener = LocalNotifications.addListener(
+            "localNotificationActionPerformed",
+            () => {
+              window.location.href = appPath("/admin/");
+            },
+          );
+        } catch {
+          if (!cancelled) setNotificationPermission("unsupported");
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        setNotificationPermission(
+          "Notification" in window ? window.Notification.permission : "unsupported",
+        );
+      }
     }
+
+    void checkNotificationPermission();
+
+    return () => {
+      cancelled = true;
+      void notificationActionListener?.then((listener) => listener.remove());
+    };
   }, []);
 
   useEffect(() => {
@@ -258,6 +322,16 @@ export function AdminApp() {
   }
 
   async function enableNotifications() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permission = await LocalNotifications.requestPermissions();
+        setNotificationPermission(nativePermissionStatus(permission.display));
+      } catch {
+        setNotificationPermission("unsupported");
+      }
+      return;
+    }
+
     if (!("Notification" in window)) {
       setNotificationPermission("unsupported");
       return;

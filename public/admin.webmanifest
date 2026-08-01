@@ -1,0 +1,29 @@
+{
+  "id": "./admin/",
+  "name": "Administración · La Cocina de Miguelón",
+  "short_name": "Miguelón Admin",
+  "description": "Gestiona pedidos, productos y entregas de La Cocina de Miguelón.",
+  "lang": "es-CU",
+  "dir": "ltr",
+  "start_url": "./admin/",
+  "scope": "./admin/",
+  "display": "standalone",
+  "background_color": "#fbf5ea",
+  "theme_color": "#8f241f",
+  "categories": ["business", "food"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icons/admin-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/admin-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

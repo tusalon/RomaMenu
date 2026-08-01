@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
 
 export const dynamic = "force-static";
 
-const geist = Geist({
-  variable: "--font-geist",
-  subsets: ["latin"],
-});
-
-const metadataBase = new URL("https://tusalon.github.io/RomaMenu/");
+const metadataBase = new URL(
+  process.env.CAPACITOR_BUILD === "true"
+    ? "https://localhost/"
+    : process.env.GITHUB_PAGES === "true"
+      ? "https://tusalon.github.io/RomaMenu/"
+      : process.env.NEXT_PUBLIC_SITE_URL ??
+        "https://roma-menu-miguelon.leetomy437.chatgpt.site/",
+);
 
 export const metadata: Metadata = {
   metadataBase,
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es">
-      <body className={geist.variable}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
