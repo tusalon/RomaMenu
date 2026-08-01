@@ -67,6 +67,28 @@ test("keeps mobile section navigation responsive and accessible", async () => {
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
 });
 
+test("repairs legacy mojibake without changing valid Spanish text", async () => {
+  const typescript = await import("typescript");
+  const source = await readFile(new URL("../app/lib/text-encoding.ts", import.meta.url), "utf8");
+  const compiled = typescript.transpileModule(source, {
+    compilerOptions: {
+      module: typescript.ModuleKind.ESNext,
+      target: typescript.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
+  const { repairMojibake, repairMojibakeValue } = await import(moduleUrl);
+
+  assert.equal(repairMojibake("La Cocina de Miguel\u00c3\u00b3n"), "La Cocina de Miguelón");
+  assert.equal(repairMojibake("Comida con cari\u00c3\u00b1o"), "Comida con cariño");
+  assert.equal(repairMojibake("45\u00e2\u20ac\u201c60 min"), "45–60 min");
+  assert.equal(repairMojibake("Arroz congrí"), "Arroz congrí");
+  assert.deepEqual(
+    repairMojibakeValue({ nombre: "Arroz congr\u00c3\u00ad", descripcion: "Bien fr\u00c3\u00ada" }),
+    { nombre: "Arroz congrí", descripcion: "Bien fría" },
+  );
+});
+
 test("ships Supabase security, Cloudinary uploads and admin deletion actions", async () => {
   const [schema, packageJson, repository, adminApp] = await Promise.all([
     readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8"),

@@ -1,5 +1,6 @@
 import { demoCatalog, initialDemoOrders } from "./demo-data";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { repairMojibake, repairMojibakeValue } from "./text-encoding";
 import type {
   BusinessSettings,
   CartItem,
@@ -18,6 +19,50 @@ const DEMO_ORDERS_KEY = "miguelon-demo-orders";
 const DEMO_SESSION_KEY = "miguelon-demo-admin";
 const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
 const cloudinaryUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
+
+const CATALOG_TEXT_FIELDS = {
+  configuracion_negocio: [
+    "nombre_negocio",
+    "descripcion",
+    "direccion",
+    "tiempo_entrega",
+    "mensaje_abierto",
+    "mensaje_cerrado",
+    "texto_bienvenida",
+  ],
+  categorias: ["nombre", "descripcion"],
+  productos: ["nombre", "descripcion"],
+  zonas_entrega: ["nombre", "tiempo_estimado"],
+  metodos_pago: ["nombre", "descripcion"],
+} as const;
+
+async function repairRemoteCatalogEncoding() {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  for (const [table, fields] of Object.entries(CATALOG_TEXT_FIELDS)) {
+    const { data, error } = await supabase.from(table).select("*");
+    if (error) throw error;
+
+    for (const record of data ?? []) {
+      const changes: Record<string, string> = {};
+      for (const field of fields) {
+        const current = record[field];
+        if (typeof current !== "string") continue;
+        const repaired = repairMojibake(current);
+        if (repaired !== current) changes[field] = repaired;
+      }
+
+      if (Object.keys(changes).length) {
+        const { error: updateError } = await supabase
+          .from(table)
+          .update(changes)
+          .eq("id", record.id);
+        if (updateError) throw updateError;
+      }
+    }
+  }
+}
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -38,15 +83,19 @@ function writeStorage<T>(key: string, value: T) {
 }
 
 export function getDemoCatalog() {
-  return readStorage<PublicCatalog>(DEMO_CATALOG_KEY, demoCatalog);
+  return repairMojibakeValue(
+    readStorage<PublicCatalog>(DEMO_CATALOG_KEY, demoCatalog),
+  );
 }
 
 export function saveDemoCatalog(catalog: PublicCatalog) {
-  writeStorage(DEMO_CATALOG_KEY, catalog);
+  writeStorage(DEMO_CATALOG_KEY, repairMojibakeValue(catalog));
 }
 
 export function getDemoOrders() {
-  return readStorage<Order[]>(DEMO_ORDERS_KEY, initialDemoOrders);
+  return repairMojibakeValue(
+    readStorage<Order[]>(DEMO_ORDERS_KEY, initialDemoOrders),
+  );
 }
 
 export async function fetchPublicCatalog(): Promise<PublicCatalog> {
@@ -71,13 +120,13 @@ export async function fetchPublicCatalog(): Promise<PublicCatalog> {
   ].find(Boolean);
   if (firstError) throw firstError;
 
-  return {
+  return repairMojibakeValue({
     settings: (settingsResult.data ?? demoCatalog.settings) as BusinessSettings,
     categories: (categoriesResult.data ?? []) as Category[],
     products: (productsResult.data ?? []) as Product[],
     zones: (zonesResult.data ?? []) as DeliveryZone[],
     paymentMethods: (paymentsResult.data ?? []) as PaymentMethod[],
-  };
+  });
 }
 
 export async function createOrder(
@@ -201,6 +250,7 @@ export async function signInAdmin(email: string, password: string) {
     await supabase.auth.signOut();
     throw new Error("Esta cuenta no tiene acceso administrativo activo.");
   }
+  await repairRemoteCatalogEncoding().catch(() => undefined);
   return data.user;
 }
 
@@ -221,7 +271,9 @@ export async function hasAdminSession() {
     .eq("id", data.session.user.id)
     .eq("activo", true)
     .maybeSingle();
-  return Boolean(profile);
+  if (!profile) return false;
+  await repairRemoteCatalogEncoding().catch(() => undefined);
+  return true;
 }
 
 export async function fetchAdminOrders(limit?: number): Promise<Order[]> {
@@ -241,10 +293,10 @@ export async function fetchAdminOrders(limit?: number): Promise<Order[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((order) => ({
+  return repairMojibakeValue((data ?? []).map((order) => ({
     ...order,
     items: order.pedido_items ?? [],
-  })) as Order[];
+  }))) as Order[];
 }
 
 export async function fetchAdminData() {
@@ -272,7 +324,7 @@ export async function fetchAdminData() {
   ].find(Boolean);
   if (error) throw error;
 
-  return {
+  return repairMojibakeValue({
     catalog: {
       settings: (settings.data ?? demoCatalog.settings) as BusinessSettings,
       categories: (categories.data ?? []) as Category[],
@@ -281,7 +333,7 @@ export async function fetchAdminData() {
       paymentMethods: (payments.data ?? []) as PaymentMethod[],
     },
     orders,
-  };
+  });
 }
 
 type CatalogCollection = "products" | "categories" | "zones" | "paymentMethods";
