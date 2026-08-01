@@ -224,11 +224,34 @@ export async function hasAdminSession() {
   return Boolean(profile);
 }
 
+export async function fetchAdminOrders(limit?: number): Promise<Order[]> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const orders = getDemoOrders();
+    return limit ? orders.slice(0, limit) : orders;
+  }
+
+  let query = supabase
+    .from("pedidos")
+    .select("*, pedido_items(*)")
+    .order("created_at", { ascending: false });
+  if (limit) query = query.limit(limit);
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return (data ?? []).map((order) => ({
+    ...order,
+    items: order.pedido_items ?? [],
+  })) as Order[];
+}
+
 export async function fetchAdminData() {
   const supabase = getSupabase();
   if (!supabase) return { catalog: getDemoCatalog(), orders: getDemoOrders() };
 
-  const [catalog, ordersResult] = await Promise.all([
+  const [catalog, orders] = await Promise.all([
     Promise.all([
       supabase.from("configuracion_negocio").select("*").limit(1).maybeSingle(),
       supabase.from("categorias").select("*").order("orden"),
@@ -236,10 +259,7 @@ export async function fetchAdminData() {
       supabase.from("zonas_entrega").select("*").order("nombre"),
       supabase.from("metodos_pago").select("*").order("nombre"),
     ]),
-    supabase
-      .from("pedidos")
-      .select("*, pedido_items(*)")
-      .order("created_at", { ascending: false }),
+    fetchAdminOrders(),
   ]);
 
   const [settings, categories, products, zones, payments] = catalog;
@@ -249,14 +269,8 @@ export async function fetchAdminData() {
     products.error,
     zones.error,
     payments.error,
-    ordersResult.error,
   ].find(Boolean);
   if (error) throw error;
-
-  const orders = (ordersResult.data ?? []).map((order) => ({
-    ...order,
-    items: order.pedido_items ?? [],
-  })) as Order[];
 
   return {
     catalog: {

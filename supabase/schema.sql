@@ -168,6 +168,22 @@ create index if not exists idx_pedidos_telefono on public.pedidos(telefono);
 create index if not exists idx_items_pedido on public.pedido_items(pedido_id);
 create index if not exists idx_historial_pedido on public.historial_estados(pedido_id, changed_at desc);
 
+-- Permite que el panel administrativo reciba pedidos nuevos al instante.
+do $$
+begin
+  if exists (
+    select 1 from pg_publication where pubname = 'supabase_realtime'
+  ) and not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'pedidos'
+  ) then
+    alter publication supabase_realtime add table public.pedidos;
+  end if;
+end $$;
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql

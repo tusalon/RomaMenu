@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BellRing,
   Boxes,
   ChefHat,
   ClipboardList,
@@ -24,7 +25,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { formatCurrency, formatDate, orderStatusLabels } from "@/app/lib/format";
 import { appPath } from "@/app/lib/site-path";
 import {
@@ -32,6 +33,7 @@ import {
   deleteDeliveryZone,
   deleteOrder,
   fetchAdminData,
+  fetchAdminOrders,
   hasAdminSession,
   isCloudinaryConfigured,
   isSupabaseConfigured,
@@ -41,6 +43,7 @@ import {
   updateOrder,
   uploadProductImage,
 } from "@/app/lib/repository";
+import { getSupabase } from "@/app/lib/supabase";
 import type {
   BusinessSettings,
   Category,
@@ -53,6 +56,48 @@ import type {
 } from "@/app/lib/types";
 
 type Section = "dashboard" | "orders" | "products" | "categories" | "zones" | "payments" | "settings";
+type NotificationSupport = "checking" | "unsupported" | NotificationPermission;
+type OrderAlert = { order: Order; count: number };
+
+const ORDER_POLL_MS = 30000;
+const ORDER_REFRESH_LIMIT = 50;
+const ADMIN_NOTIFICATION_WORKER = appPath("/admin-notifications-sw.js");
+const ADMIN_NOTIFICATION_SCOPE = appPath("/");
+
+async function showOrderNotification(order: Order, currencySymbol: string) {
+  if (!("Notification" in window) || window.Notification.permission !== "granted") return;
+
+  const title = `Nuevo pedido #${order.numero_pedido}`;
+  const options: NotificationOptions = {
+    body: `${order.nombre_cliente} · ${formatCurrency(order.total, currencySymbol)}`,
+    data: { url: appPath("/admin/") },
+    tag: order.id,
+  };
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register(ADMIN_NOTIFICATION_WORKER, {
+        scope: ADMIN_NOTIFICATION_SCOPE,
+      });
+      const activeRegistration = registration.active ? registration : await navigator.serviceWorker.ready;
+      await activeRegistration.showNotification(title, options);
+      return;
+    } catch {
+      // Algunos navegadores de escritorio aún pueden usar el constructor clásico.
+    }
+  }
+
+  try {
+    const notification = new window.Notification(title, options);
+    notification.onclick = () => {
+      window.focus();
+      window.location.href = appPath("/admin/");
+      notification.close();
+    };
+  } catch {
+    // El aviso visible dentro del panel permanece disponible como respaldo.
+  }
+}
 
 const navItems: Array<{ id: Section; label: string; icon: typeof LayoutDashboard }> = [
   { id: "dashboard", label: "Resumen", icon: LayoutDashboard },
@@ -81,21 +126,125 @@ export function AdminApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationSupport>(() => {
+    if (typeof window === "undefined") return "checking";
+    return "Notification" in window ? window.Notification.permission : "unsupported";
+  });
+  const [orderAlert, setOrderAlert] = useState<OrderAlert | null>(null);
+  const knownOrderIds = useRef(new Set<string>());
 
   useEffect(() => {
-    hasAdminSession().then((active) => {
-      if (!active) {
-        window.location.href = appPath("/admin/login/");
-        return;
-      }
-      fetchAdminData()
-        .then((data) => {
-          setCatalog(data.catalog);
-          setOrders(data.orders);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register(ADMIN_NOTIFICATION_WORKER, { scope: ADMIN_NOTIFICATION_SCOPE })
+        .catch(() => undefined);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!orderAlert) return;
+    const timeout = window.setTimeout(() => setOrderAlert(null), 12000);
+    return () => window.clearTimeout(timeout);
+  }, [orderAlert]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer = 0;
+    let stopRealtime: (() => void) | undefined;
+    let refreshPromise: Promise<void> | null = null;
+    let currencySymbol = "$";
+
+    function refreshOrders(notify: boolean) {
+      if (refreshPromise) return refreshPromise;
+
+      refreshPromise = fetchAdminOrders(ORDER_REFRESH_LIMIT)
+        .then((nextOrders) => {
+          if (cancelled) return;
+
+          const seenIds = knownOrderIds.current;
+          const nextIds = new Set(nextOrders.map((order) => order.id));
+          const newOrders = notify ? nextOrders.filter((order) => !seenIds.has(order.id)) : [];
+
+          knownOrderIds.current = new Set([...seenIds, ...nextIds]);
+          setOrders((current) => [
+            ...nextOrders,
+            ...current.filter((order) => !nextIds.has(order.id)),
+          ]);
+          setError("");
+
+          if (newOrders.length) {
+            setOrderAlert({ order: newOrders[0], count: newOrders.length });
+            newOrders.forEach((order) => void showOrderNotification(order, currencySymbol));
+          }
         })
-        .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "No pudimos cargar el panel."))
-        .finally(() => setLoading(false));
-    });
+        .finally(() => {
+          refreshPromise = null;
+        });
+
+      return refreshPromise;
+    }
+
+    function reportRefreshError(requestError: unknown) {
+      if (!cancelled) {
+        setError(requestError instanceof Error ? requestError.message : "No pudimos actualizar los pedidos.");
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") void refreshOrders(true).catch(reportRefreshError);
+    }
+
+    async function startAdmin() {
+      try {
+        const active = await hasAdminSession();
+        if (cancelled) return;
+        if (!active) {
+          window.location.href = appPath("/admin/login/");
+          return;
+        }
+
+        const data = await fetchAdminData();
+        if (cancelled) return;
+
+        currencySymbol = data.catalog.settings.simbolo_moneda;
+        knownOrderIds.current = new Set(data.orders.map((order) => order.id));
+        setCatalog(data.catalog);
+        setOrders(data.orders);
+
+        const supabase = getSupabase();
+        if (supabase) {
+          const channel = supabase
+            .channel("admin-new-orders")
+            .on(
+              "postgres_changes",
+              { event: "INSERT", schema: "public", table: "pedidos" },
+              () => void refreshOrders(true).catch(reportRefreshError),
+            )
+            .subscribe();
+          stopRealtime = () => void supabase.removeChannel(channel);
+        }
+
+        timer = window.setInterval(() => void refreshOrders(true).catch(reportRefreshError), ORDER_POLL_MS);
+        window.addEventListener("focus", refreshWhenVisible);
+        document.addEventListener("visibilitychange", refreshWhenVisible);
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(requestError instanceof Error ? requestError.message : "No pudimos cargar el panel.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void startAdmin();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      stopRealtime?.();
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, []);
 
   async function handleLogout() {
@@ -106,6 +255,16 @@ export function AdminApp() {
   function navigate(next: Section) {
     setSection(next);
     setSidebarOpen(false);
+  }
+
+  async function enableNotifications() {
+    if (!("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      return;
+    }
+
+    const permission = await window.Notification.requestPermission();
+    setNotificationPermission(permission);
   }
 
   if (loading) return <div className="admin-loading"><LoaderCircle className="spin" size={27} /> Preparando el panel…</div>;
@@ -129,7 +288,15 @@ export function AdminApp() {
           <div className="admin-title"><small>{title.eyebrow}</small><h1>{title.title}</h1></div>
           <div className="admin-top-actions">
             {!isSupabaseConfigured() && <span className="admin-mode">Modo demostración</span>}
-            <a className="button button-secondary button-small" href={appPath("/")} target="_blank">Ver tienda</a>
+            {notificationPermission === "default" && (
+              <button className="button button-secondary button-small" type="button" onClick={enableNotifications}>
+                <BellRing size={15} /> Activar alertas
+              </button>
+            )}
+            {notificationPermission === "granted" && <span className="admin-mode admin-mode-success"><BellRing size={13} /> Alertas activas</span>}
+            {notificationPermission === "denied" && <span className="admin-mode" title="Permite las notificaciones desde la configuración del navegador.">Alertas bloqueadas</span>}
+            {notificationPermission === "unsupported" && <span className="admin-mode">Alertas no disponibles</span>}
+            <a className="button button-secondary button-small" href={appPath("/")} target="_blank" rel="noreferrer">Ver tienda</a>
             <button className="icon-button admin-mobile-menu" type="button" onClick={() => setSidebarOpen((value) => !value)}>{sidebarOpen ? <X size={20} /> : <Menu size={20} />}</button>
           </div>
         </header>
@@ -142,6 +309,21 @@ export function AdminApp() {
         {section === "payments" && <PaymentsSection catalog={catalog} setCatalog={setCatalog} />}
         {section === "settings" && <SettingsSection catalog={catalog} setCatalog={setCatalog} />}
       </main>
+      {orderAlert && (
+        <button
+          className="toast admin-order-toast"
+          type="button"
+          onClick={() => {
+            navigate("orders");
+            setOrderAlert(null);
+          }}
+        >
+          <BellRing size={17} />
+          {orderAlert.count > 1
+            ? `${orderAlert.count} pedidos nuevos`
+            : `Nuevo pedido #${orderAlert.order.numero_pedido} de ${orderAlert.order.nombre_cliente}`}
+        </button>
+      )}
     </div>
   );
 }

@@ -15,6 +15,7 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - Dashboard, pedidos, productos, categorías, zonas, pagos y configuración del negocio.
 - Eliminación confirmada de pedidos y de zonas que no tengan pedidos asociados.
 - Subida y entrega optimizada de fotografías mediante Cloudinary.
+- Alertas inmediatas de pedidos nuevos en el panel, con notificación del navegador y comprobación de respaldo.
 - Row Level Security para proteger pedidos y operaciones administrativas.
 - Modo demostración local cuando Supabase aún no está configurado.
 
@@ -47,6 +48,8 @@ Completa `.env.local` con la URL y la clave pública `anon` de Supabase, además
 4. En **Project Settings > API**, copia la URL y la clave pública `anon` a `.env.local`.
 5. En **Authentication > Users**, crea el primer usuario administrativo con correo y contraseña.
 6. Copia su UUID y ejecuta [`supabase/create-first-admin.sql`](supabase/create-first-admin.sql), sustituyendo los valores indicados.
+
+Si el esquema ya estaba instalado antes de añadir las alertas, ejecuta una vez [`supabase/enable-order-realtime.sql`](supabase/enable-order-realtime.sql).
 
 ## Configurar Cloudinary
 
@@ -93,6 +96,7 @@ Una cuenta de Auth sin un perfil administrativo activo podrá autenticarse, pero
 - **Zonas de entrega:** define costo, pedido mínimo y tiempo estimado.
 - **Métodos de pago:** activa o desactiva las opciones visibles al cliente.
 - **Configuración:** cambia textos, contacto, moneda, estado abierto/cerrado y colores principales.
+- **Alertas:** pulsa **Activar alertas** una vez y acepta el permiso del navegador para recibir cada pedido nuevo mientras el panel esté abierto.
 
 ## Flujo seguro de pedidos
 
@@ -134,6 +138,9 @@ Cada cambio enviado a `feature/cocina-miguelon` ejecuta el flujo
 `.github/workflows/deploy-pages.yml`. El flujo genera una exportación estática
 con la ruta base `/RomaMenu/` y publica el catálogo en
 `https://tusalon.github.io/RomaMenu/`.
+
+El panel privado se abre directamente en
+`https://tusalon.github.io/RomaMenu/admin/`; el catálogo público no muestra ningún enlace hacia esa ruta.
 
 ### OpenAI Sites / Cloudflare
 
