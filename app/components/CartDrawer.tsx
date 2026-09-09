@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
-import { formatCurrency, orderStatusLabels } from "@/app/lib/format";
+import { extrasFromCart, extrasTotal, formatCurrency, orderStatusLabels } from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
 import type { CartItem, CheckoutData, Order, PublicCatalog } from "@/app/lib/types";
 
@@ -54,7 +54,9 @@ export function CartDrawer({
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
   const zone = catalog.zones.find((item) => item.id === form.zona_id);
   const delivery = zone?.costo ?? 0;
-  const total = subtotal + delivery;
+  const extraLines = useMemo(() => extrasFromCart(items), [items]);
+  const extras = extrasTotal(extraLines);
+  const total = subtotal + delivery + extras;
   const symbol = catalog.settings.simbolo_moneda;
 
   const unavailable = useMemo(
@@ -177,6 +179,12 @@ export function CartDrawer({
             {items.length > 0 && (
               <div className="drawer-footer">
                 <div className="total-line"><span>Subtotal</span><strong>{formatCurrency(subtotal, symbol)}</strong></div>
+                {extraLines.map((line) => (
+                  <div className="total-line" key={`${line.nombre}-${line.unitario}`}>
+                    <span>{line.cantidad} × {formatCurrency(line.unitario, symbol)} en {line.nombre}</span>
+                    <strong>{formatCurrency(line.total, symbol)}</strong>
+                  </div>
+                ))}
                 <small>El costo de entrega se calcula según tu zona.</small>
                 <button className="button button-primary button-block" type="button" onClick={() => setStep("checkout")}>Continuar con el pedido</button>
               </div>
@@ -199,6 +207,11 @@ export function CartDrawer({
               <div className="checkout-totals">
                 <span>Subtotal <b>{formatCurrency(subtotal, symbol)}</b></span>
                 <span>Entrega <b>{formatCurrency(delivery, symbol)}</b></span>
+                {extraLines.map((line) => (
+                  <span key={`${line.nombre}-${line.unitario}`}>
+                    {line.cantidad} × {formatCurrency(line.unitario, symbol)} en {line.nombre} <b>{formatCurrency(line.total, symbol)}</b>
+                  </span>
+                ))}
                 <strong>Total <b>{formatCurrency(total, symbol)}</b></strong>
               </div>
               <button className="button button-primary button-block" type="submit" disabled={submitting}>{submitting ? "Registrando pedido…" : "Confirmar y abrir WhatsApp"}</button>

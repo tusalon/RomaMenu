@@ -25,6 +25,8 @@ export type Product = {
   imagen_url: string;
   precio: number;
   precio_anterior?: number | null;
+  extra_nombre: string;
+  extra_costo: number;
   disponible: boolean;
   recomendado: boolean;
   nuevo: boolean;
@@ -93,6 +95,9 @@ export type OrderItem = {
   cantidad: number;
   precio_unitario: number;
   subtotal: number;
+  extra_nombre: string;
+  extra_unitario: number;
+  extra_subtotal: number;
 };
 
 export type Order = CheckoutData & {
@@ -101,6 +106,7 @@ export type Order = CheckoutData & {
   items: OrderItem[];
   subtotal: number;
   costo_entrega: number;
+  costo_extras: number;
   total: number;
   estado: OrderStatus;
   origen: string;

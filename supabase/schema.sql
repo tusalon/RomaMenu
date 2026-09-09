@@ -71,6 +71,8 @@ create table if not exists public.productos (
   imagen_url text not null default '',
   precio numeric(12,2) not null check (precio >= 0),
   precio_anterior numeric(12,2) check (precio_anterior is null or precio_anterior >= 0),
+  extra_nombre text not null default '',
+  extra_costo numeric(12,2) not null default 0 check (extra_costo >= 0),
   disponible boolean not null default true,
   recomendado boolean not null default false,
   nuevo boolean not null default false,
@@ -128,6 +130,7 @@ create table if not exists public.pedidos (
   horario_entrega text not null default '',
   subtotal numeric(12,2) not null check (subtotal >= 0),
   costo_entrega numeric(12,2) not null check (costo_entrega >= 0),
+  costo_extras numeric(12,2) not null default 0 check (costo_extras >= 0),
   total numeric(12,2) not null check (total >= 0),
   observaciones text not null default '',
   notas_internas text not null default '',
@@ -145,6 +148,9 @@ create table if not exists public.pedido_items (
   cantidad integer not null check (cantidad >= 1),
   precio_unitario numeric(12,2) not null check (precio_unitario >= 0),
   subtotal numeric(12,2) not null check (subtotal >= 0),
+  extra_nombre text not null default '',
+  extra_unitario numeric(12,2) not null default 0 check (extra_unitario >= 0),
+  extra_subtotal numeric(12,2) not null default 0 check (extra_subtotal >= 0),
   observaciones text not null default '',
   created_at timestamptz not null default now()
 );
@@ -245,7 +251,8 @@ $$;
 revoke all on function public.es_admin() from public;
 grant execute on function public.es_admin() to authenticated;
 
-create or replace function public.crear_pedido_publico(
+drop function if exists public.crear_pedido_publico(jsonb, jsonb);
+create function public.crear_pedido_publico(
   p_cliente jsonb,
   p_items jsonb
 )
@@ -254,6 +261,7 @@ returns table (
   numero_pedido text,
   subtotal numeric,
   costo_entrega numeric,
+  costo_extras numeric,
   total numeric
 )
 language plpgsql
@@ -264,6 +272,7 @@ declare
   v_pedido_id uuid := gen_random_uuid();
   v_numero text;
   v_subtotal numeric(12,2) := 0;
+  v_extras numeric(12,2) := 0;
   v_entrega numeric(12,2);
   v_minimo numeric(12,2);
   v_producto record;
@@ -301,7 +310,7 @@ begin
   where z.id = v_zona_id and z.activa = true;
   if not found then raise exception 'La zona de entrega no está disponible.'; end if;
 
-  if not exists (select 1 from public.metodos_pago where id = v_metodo_id and activo = true) then
+  if not exists (select 1 from public.metodos_pago where metodos_pago.id = v_metodo_id and activo = true) then
     raise exception 'El método de pago no está disponible.';
   end if;
   if not v_abierto and not v_aceptar_fuera then
@@ -313,13 +322,16 @@ begin
     if v_cantidad < 1 or v_cantidad > 50 then
       raise exception 'La cantidad solicitada no es válida.';
     end if;
-    select p.id, p.nombre, p.precio into v_producto
+    select p.id, p.nombre, p.precio, p.extra_nombre, p.extra_costo into v_producto
     from public.productos p
     where p.id = (v_item->>'producto_id')::uuid
       and p.activo = true and p.disponible = true
     for share;
     if not found then raise exception 'Uno de los productos ya no está disponible.'; end if;
     v_subtotal := v_subtotal + (v_producto.precio * v_cantidad);
+    if v_producto.extra_costo > 0 and length(trim(v_producto.extra_nombre)) > 0 then
+      v_extras := v_extras + (v_producto.extra_costo * v_cantidad);
+    end if;
   end loop;
 
   if v_subtotal < v_minimo then
@@ -330,31 +342,35 @@ begin
   insert into public.pedidos (
     id, numero_pedido, nombre_cliente, telefono, direccion, zona_id,
     referencia, metodo_pago_id, horario_entrega, subtotal, costo_entrega,
-    total, observaciones, estado, origen
+    costo_extras, total, observaciones, estado, origen
   ) values (
     v_pedido_id, v_numero, trim(p_cliente->>'nombre_cliente'), trim(p_cliente->>'telefono'),
     trim(p_cliente->>'direccion'), v_zona_id, trim(coalesce(p_cliente->>'referencia', '')),
     v_metodo_id, trim(coalesce(p_cliente->>'horario_entrega', '')), v_subtotal,
-    v_entrega, v_subtotal + v_entrega, trim(coalesce(p_cliente->>'observaciones', '')),
-    'nuevo', 'web'
+    v_entrega, v_extras, v_subtotal + v_entrega + v_extras,
+    trim(coalesce(p_cliente->>'observaciones', '')), 'nuevo', 'web'
   );
 
   for v_item in select value from jsonb_array_elements(p_items) loop
     v_cantidad := (v_item->>'cantidad')::integer;
-    select p.id, p.nombre, p.precio into v_producto
+    select p.id, p.nombre, p.precio, p.extra_nombre, p.extra_costo into v_producto
     from public.productos p where p.id = (v_item->>'producto_id')::uuid;
     insert into public.pedido_items (
-      pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal
+      pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal,
+      extra_nombre, extra_unitario, extra_subtotal
     ) values (
       v_pedido_id, v_producto.id, v_producto.nombre, v_cantidad,
-      v_producto.precio, v_producto.precio * v_cantidad
+      v_producto.precio, v_producto.precio * v_cantidad,
+      case when v_producto.extra_costo > 0 then trim(v_producto.extra_nombre) else '' end,
+      case when v_producto.extra_costo > 0 then v_producto.extra_costo else 0 end,
+      case when v_producto.extra_costo > 0 then v_producto.extra_costo * v_cantidad else 0 end
     );
   end loop;
 
   insert into public.historial_estados (pedido_id, estado_anterior, estado_nuevo)
   values (v_pedido_id, null, 'nuevo');
 
-  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_subtotal + v_entrega;
+  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_extras, v_subtotal + v_entrega + v_extras;
 end;
 $$;
 

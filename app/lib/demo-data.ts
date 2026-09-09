@@ -52,16 +52,16 @@ const images = {
 };
 
 export const demoProducts: Product[] = [
-  { id: "pollo-asado", categoria_id: "principales", nombre: "Pollo asado", descripcion: "Jugoso pollo marinado con especias de la casa y asado lentamente.", imagen_url: images.chicken, precio: 1500, precio_anterior: null, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 1 },
-  { id: "arroz-congri", categoria_id: "guarniciones", nombre: "Arroz congrí", descripcion: "Arroz y frijoles colorados con el punto criollo de Miguelón.", imagen_url: images.rice, precio: 450, precio_anterior: null, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 2 },
-  { id: "cerdo-asado", categoria_id: "principales", nombre: "Cerdo asado", descripcion: "Cerdo tierno con mojo cítrico, ajo y cebolla caramelizada.", imagen_url: images.pork, precio: 1650, precio_anterior: 1800, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 3 },
-  { id: "ropa-vieja", categoria_id: "principales", nombre: "Ropa vieja", descripcion: "Carne deshebrada en salsa criolla de tomate, pimientos y vino seco.", imagen_url: images.beef, precio: 1450, precio_anterior: null, disponible: true, recomendado: true, nuevo: true, activo: true, orden: 4 },
-  { id: "arroz-frito", categoria_id: "principales", nombre: "Arroz frito", descripcion: "Arroz salteado con vegetales, huevo, jamón y sabores orientales.", imagen_url: images.rice, precio: 1000, precio_anterior: null, disponible: true, recomendado: false, nuevo: true, activo: true, orden: 5 },
-  { id: "ensalada", categoria_id: "guarniciones", nombre: "Ensalada fresca", descripcion: "Vegetales del día con vinagreta ligera preparada en casa.", imagen_url: images.salad, precio: 350, precio_anterior: null, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 6 },
-  { id: "vianda", categoria_id: "guarniciones", nombre: "Vianda con mojo", descripcion: "Selección de viandas hervidas con mojo de ajo y limón.", imagen_url: images.roots, precio: 400, precio_anterior: null, disponible: false, recomendado: false, nuevo: false, activo: true, orden: 7 },
-  { id: "combo-familiar", categoria_id: "combos", nombre: "Combo familiar", descripcion: "Pollo asado, congrí, ensalada y viandas para compartir entre cuatro.", imagen_url: images.family, precio: 4200, precio_anterior: 4700, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 8 },
-  { id: "flan", categoria_id: "postres", nombre: "Flan de la casa", descripcion: "Flan cremoso con caramelo, hecho cada mañana.", imagen_url: images.flan, precio: 300, precio_anterior: null, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 9 },
-  { id: "refresco", categoria_id: "bebidas", nombre: "Refresco", descripcion: "Lata fría de 355 ml. Consulta los sabores disponibles.", imagen_url: images.drink, precio: 250, precio_anterior: null, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 10 },
+  { id: "pollo-asado", categoria_id: "principales", nombre: "Pollo asado", descripcion: "Jugoso pollo marinado con especias de la casa y asado lentamente.", imagen_url: images.chicken, precio: 1500, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 1 },
+  { id: "arroz-congri", categoria_id: "guarniciones", nombre: "Arroz congrí", descripcion: "Arroz y frijoles colorados con el punto criollo de Miguelón.", imagen_url: images.rice, precio: 450, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 2 },
+  { id: "cerdo-asado", categoria_id: "principales", nombre: "Cerdo asado", descripcion: "Cerdo tierno con mojo cítrico, ajo y cebolla caramelizada.", imagen_url: images.pork, precio: 1650, precio_anterior: 1800, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 3 },
+  { id: "ropa-vieja", categoria_id: "principales", nombre: "Ropa vieja", descripcion: "Carne deshebrada en salsa criolla de tomate, pimientos y vino seco.", imagen_url: images.beef, precio: 1450, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: true, nuevo: true, activo: true, orden: 4 },
+  { id: "arroz-frito", categoria_id: "principales", nombre: "Arroz frito", descripcion: "Arroz salteado con vegetales, huevo, jamón y sabores orientales.", imagen_url: images.rice, precio: 1000, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: false, nuevo: true, activo: true, orden: 5 },
+  { id: "ensalada", categoria_id: "guarniciones", nombre: "Ensalada fresca", descripcion: "Vegetales del día con vinagreta ligera preparada en casa.", imagen_url: images.salad, precio: 350, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 6 },
+  { id: "vianda", categoria_id: "guarniciones", nombre: "Vianda con mojo", descripcion: "Selección de viandas hervidas con mojo de ajo y limón.", imagen_url: images.roots, precio: 400, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: false, recomendado: false, nuevo: false, activo: true, orden: 7 },
+  { id: "combo-familiar", categoria_id: "combos", nombre: "Combo familiar", descripcion: "Pollo asado, congrí, ensalada y viandas para compartir entre cuatro.", imagen_url: images.family, precio: 4200, precio_anterior: 4700, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: true, nuevo: false, activo: true, orden: 8 },
+  { id: "flan", categoria_id: "postres", nombre: "Flan de la casa", descripcion: "Flan cremoso con caramelo, hecho cada mañana.", imagen_url: images.flan, precio: 300, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 9 },
+  { id: "refresco", categoria_id: "bebidas", nombre: "Refresco", descripcion: "Lata fría de 355 ml. Consulta los sabores disponibles.", imagen_url: images.drink, precio: 250, precio_anterior: null, extra_nombre: '', extra_costo: 0, disponible: true, recomendado: false, nuevo: false, activo: true, orden: 10 },
 ];
 
 export const demoZones: DeliveryZone[] = [
@@ -97,11 +97,12 @@ export const initialDemoOrders: Order[] = [
     horario_entrega: "19:00",
     observaciones: "Sin cebolla, por favor.",
     items: [
-      { producto_id: "pollo-asado", nombre_producto: "Pollo asado", cantidad: 1, precio_unitario: 1500, subtotal: 1500 },
-      { producto_id: "arroz-congri", nombre_producto: "Arroz congrí", cantidad: 2, precio_unitario: 450, subtotal: 900 },
+      { producto_id: "pollo-asado", nombre_producto: "Pollo asado", cantidad: 1, precio_unitario: 1500, subtotal: 1500, extra_nombre: '', extra_unitario: 0, extra_subtotal: 0 },
+      { producto_id: "arroz-congri", nombre_producto: "Arroz congrí", cantidad: 2, precio_unitario: 450, subtotal: 900, extra_nombre: '', extra_unitario: 0, extra_subtotal: 0 },
     ],
     subtotal: 2400,
     costo_entrega: 200,
+    costo_extras: 0,
     total: 2600,
     estado: "nuevo",
     origen: "web",

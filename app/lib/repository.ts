@@ -1,4 +1,5 @@
 import { demoCatalog, initialDemoOrders } from "./demo-data";
+import { extrasFromOrder } from "./format";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { repairMojibake, repairMojibakeValue } from "./text-encoding";
 import type {
@@ -31,7 +32,7 @@ const CATALOG_TEXT_FIELDS = {
     "texto_bienvenida",
   ],
   categorias: ["nombre", "descripcion"],
-  productos: ["nombre", "descripcion"],
+  productos: ["nombre", "descripcion", "extra_nombre"],
   zonas_entrega: ["nombre", "tiempo_estimado"],
   metodos_pago: ["nombre", "descripcion"],
 } as const;
@@ -135,14 +136,23 @@ export async function createOrder(
   zone: DeliveryZone,
 ): Promise<Order> {
   const supabase = getSupabase();
-  const items = cart.map(({ product, quantity }) => ({
-    producto_id: product.id,
-    nombre_producto: product.nombre,
-    cantidad: quantity,
-    precio_unitario: product.precio,
-    subtotal: product.precio * quantity,
-  }));
+  const items = cart.map(({ product, quantity }) => {
+    const extraNombre = (product.extra_nombre ?? "").trim();
+    const extraUnitario = Number(product.extra_costo ?? 0);
+    const cobraExtra = Boolean(extraNombre) && extraUnitario > 0;
+    return {
+      producto_id: product.id,
+      nombre_producto: product.nombre,
+      cantidad: quantity,
+      precio_unitario: product.precio,
+      subtotal: product.precio * quantity,
+      extra_nombre: cobraExtra ? extraNombre : "",
+      extra_unitario: cobraExtra ? extraUnitario : 0,
+      extra_subtotal: cobraExtra ? extraUnitario * quantity : 0,
+    };
+  });
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const extras = items.reduce((sum, item) => sum + item.extra_subtotal, 0);
 
   if (supabase) {
     const { data, error } = await supabase.rpc("crear_pedido_publico", {
@@ -158,6 +168,7 @@ export async function createOrder(
       items,
       subtotal: Number(result.subtotal),
       costo_entrega: Number(result.costo_entrega),
+      costo_extras: Number(result.costo_extras ?? 0),
       total: Number(result.total),
       estado: "nuevo",
       origen: "web",
@@ -176,7 +187,8 @@ export async function createOrder(
     items,
     subtotal,
     costo_entrega: zone.costo,
-    total: subtotal + zone.costo,
+    costo_extras: extras,
+    total: subtotal + zone.costo + extras,
     estado: "nuevo",
     origen: "web-demo",
     created_at: new Date().toISOString(),
@@ -202,6 +214,19 @@ export function buildWhatsAppMessage(
     )
     .join("\n");
 
+  const extraLines = extrasFromOrder(order.items);
+  const extraBlock = extraLines.length
+    ? [
+        "OTROS GASTOS:",
+        "",
+        ...extraLines.map(
+          (line) =>
+            `${line.cantidad} × ${currency(line.unitario)} en ${line.nombre} — ${currency(line.total)}`,
+        ),
+        "",
+      ]
+    : [];
+
   return [
     "NUEVO PEDIDO — LA COCINA DE MIGUELÓN",
     "",
@@ -217,8 +242,10 @@ export function buildWhatsAppMessage(
     "",
     productLines,
     "",
+    ...extraBlock,
     `Subtotal: ${currency(order.subtotal)}`,
     `Entrega: ${currency(order.costo_entrega)}`,
+    ...(order.costo_extras > 0 ? [`Otros gastos: ${currency(order.costo_extras)}`] : []),
     `TOTAL: ${currency(order.total)}`,
     "",
     `Método de pago: ${payment?.nombre ?? "Sin especificar"}`,

@@ -1,4 +1,4 @@
-import type { OrderStatus } from "./types";
+import type { CartItem, OrderItem, OrderStatus } from "./types";
 
 export function formatCurrency(value: number, symbol = "$") {
   return `${symbol}${Number(value).toLocaleString("es-CU")}`;
@@ -22,3 +22,56 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   cancelado: "Cancelado",
 };
 
+
+export type ExtraLine = {
+  nombre: string;
+  unitario: number;
+  cantidad: number;
+  total: number;
+};
+
+// Agrupa los cargos extra por concepto e importe: dos productos con el mismo
+// "Termo pack" a 200 salen en una sola linea de 8; si uno costara 250, en dos.
+export function groupExtras(
+  entries: { nombre?: string | null; unitario?: number | null; cantidad: number }[],
+): ExtraLine[] {
+  const lines = new Map<string, ExtraLine>();
+  for (const entry of entries) {
+    const nombre = (entry.nombre ?? "").trim();
+    const unitario = Number(entry.unitario ?? 0);
+    if (!nombre || !(unitario > 0) || !(entry.cantidad > 0)) continue;
+    const key = `${nombre}|${unitario}`;
+    const current = lines.get(key);
+    if (current) {
+      current.cantidad += entry.cantidad;
+      current.total += unitario * entry.cantidad;
+    } else {
+      lines.set(key, { nombre, unitario, cantidad: entry.cantidad, total: unitario * entry.cantidad });
+    }
+  }
+  return [...lines.values()];
+}
+
+export function extrasFromCart(items: CartItem[]): ExtraLine[] {
+  return groupExtras(
+    items.map(({ product, quantity }) => ({
+      nombre: product.extra_nombre,
+      unitario: product.extra_costo,
+      cantidad: quantity,
+    })),
+  );
+}
+
+export function extrasFromOrder(items: OrderItem[]): ExtraLine[] {
+  return groupExtras(
+    items.map((item) => ({
+      nombre: item.extra_nombre,
+      unitario: item.extra_unitario,
+      cantidad: item.cantidad,
+    })),
+  );
+}
+
+export function extrasTotal(lines: ExtraLine[]) {
+  return lines.reduce((sum, line) => sum + line.total, 0);
+}
