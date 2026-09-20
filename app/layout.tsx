@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "La Cocina de Miguelón",
     description: "Comida casera preparada con cariño y entrega a domicilio.",
-    images: [{ url: new URL("og.png", metadataBase).toString(), width: 1732, height: 909, alt: "La Cocina de Miguelón — comida casera a domicilio" }],
+    images: [{ url: new URL("og.jpg", metadataBase).toString(), width: 1200, height: 630, alt: "La Cocina de Miguelón — comida criolla, pedidos por WhatsApp al 55002272" }],
     locale: "es_CU",
     type: "website",
   },
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "La Cocina de Miguelón",
     description: "Comida casera preparada con cariño y entrega a domicilio.",
-    images: [new URL("og.png", metadataBase).toString()],
+    images: [new URL("og.jpg", metadataBase).toString()],
   },
 };
 

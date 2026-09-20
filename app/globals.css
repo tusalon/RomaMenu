@@ -81,9 +81,9 @@ img { display: block; max-width: 100%; }
 .hero-trust b { font-size: 12px; }
 .hero-trust small { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .hero-visual { position: relative; padding: 18px 24px 42px 0; }
-.hero-image-wrap { position: relative; isolation: isolate; }
-.hero-image-wrap::before { content: ""; position: absolute; z-index: -1; width: 75%; height: 75%; right: -24px; top: -22px; border-radius: 44% 56% 42% 58%; background: #f3c9a8; transform: rotate(5deg); }
-.hero-image-wrap img { display: block; width: 100%; max-width: 420px; height: auto; aspect-ratio: 3 / 4; margin-inline: auto; object-fit: cover; border-radius: 24px; box-shadow: var(--shadow); }
+.hero-image-wrap { position: relative; isolation: isolate; width: fit-content; margin-inline: auto; }
+.hero-image-wrap::before { content: ""; position: absolute; z-index: -1; inset: -26px -14px -16px; border-radius: 190px 190px 44px 44px; background: #f3c9a8; transform: rotate(-3deg); }
+.hero-image-wrap img { display: block; width: 100%; max-width: 420px; height: auto; aspect-ratio: 3 / 4; margin-inline: auto; object-fit: cover; border-radius: 190px 190px 28px 28px; box-shadow: var(--shadow); }
 .hero-stamp { position: absolute; z-index: 1; top: -16px; left: -18px; width: 92px; height: 92px; display: grid; place-content: center; border: 5px solid var(--background); border-radius: 50%; background: var(--brand); color: white; text-align: center; transform: rotate(-8deg); box-shadow: 0 12px 25px rgba(66, 24, 20, .22); }
 .hero-stamp b, .hero-stamp small { display: block; font-family: Georgia, serif; }
 .hero-stamp b { font-size: 19px; }
