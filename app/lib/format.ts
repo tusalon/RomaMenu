@@ -110,3 +110,54 @@ export function formatConversion(conversion: PaymentConversion) {
   });
   return `${amount} ${conversion.moneda}`;
 }
+
+export type StockState = {
+  /** Sin unidades: el cliente no puede pedirlo. */
+  agotado: boolean;
+  /** Queda poco: solo se avisa al admin, el cliente no lo ve. */
+  bajo: boolean;
+  /** Unidades restantes, o null si el producto no lleva control de stock. */
+  restantes: number | null;
+};
+
+/**
+ * Estado de existencias de un producto.
+ *
+ * "Agotado" tiene dos caminos y los dos valen: que el admin lo apague a mano
+ * con 'disponible', o que el stock llegue a cero. Son cosas distintas — "hoy no
+ * lo cocino" no es lo mismo que "se acabo" — pero para el cliente se ven igual.
+ */
+export function stockState(product: {
+  disponible: boolean;
+  stock?: number | null;
+  stock_minimo?: number | null;
+}): StockState {
+  const restantes = product.stock == null ? null : Number(product.stock);
+  const minimo = Number(product.stock_minimo ?? 0);
+  if (restantes == null) {
+    return { agotado: !product.disponible, bajo: false, restantes: null };
+  }
+  return {
+    agotado: !product.disponible || restantes <= 0,
+    bajo: restantes > 0 && restantes <= minimo,
+    restantes,
+  };
+}
+
+/**
+ * Productos que el admin deberia reponer, de menos a mas unidades.
+ *
+ * Solo entran los que llevan control de stock. Un producto apagado a mano con
+ * diez unidades en la nevera no es falta de stock y no debe aparecer aqui.
+ */
+export function lowStockProducts<T extends { disponible: boolean; stock?: number | null; stock_minimo?: number | null }>(
+  products: T[],
+): T[] {
+  return products
+    .filter((product) => {
+      const state = stockState(product);
+      if (state.restantes == null) return false;
+      return state.restantes <= 0 || state.bajo;
+    })
+    .sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0));
+}

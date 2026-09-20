@@ -27,6 +27,10 @@ export type Product = {
   precio_anterior?: number | null;
   extra_nombre: string;
   extra_costo: number;
+  /** Unidades restantes. Nulo = sin control de stock, nunca se agota solo. */
+  stock?: number | null;
+  /** Umbral de aviso al admin. Solo cuenta si stock no es nulo. */
+  stock_minimo: number;
   disponible: boolean;
   recomendado: boolean;
   nuevo: boolean;

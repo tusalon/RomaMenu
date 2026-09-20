@@ -18,6 +18,7 @@ import {
   formatConversion,
   formatCurrency,
   orderStatusLabels,
+  stockState,
 } from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
 import type { CartItem, CheckoutData, Order, Product, PublicCatalog } from "@/app/lib/types";
@@ -87,8 +88,24 @@ export function CartDrawer({
   const unavailable = useMemo(
     () => items.find((item) => {
       const current = catalog.products.find((product) => product.id === item.product.id);
-      return !current?.disponible || current.precio !== item.product.precio;
+      return !current || stockState(current).agotado || current.precio !== item.product.precio;
     }),
+    [catalog.products, items],
+  );
+
+  // El carrito vive en el navegador y puede quedarse viejo: alguien anade tres
+  // lasanas, se van dos mientras rellena sus datos, y solo queda una. Mejor
+  // decirselo aqui que dejar que la base lo rechace tras enviar el formulario.
+  const shortStock = useMemo(
+    () => items
+      .map((item) => {
+        const current = catalog.products.find((product) => product.id === item.product.id);
+        const restantes = current ? stockState(current).restantes : null;
+        return restantes != null && restantes < item.quantity
+          ? { nombre: item.product.nombre, restantes }
+          : null;
+      })
+      .find(Boolean),
     [catalog.products, items],
   );
 
@@ -100,6 +117,7 @@ export function CartDrawer({
   function validate() {
     if (!items.length) return "Tu carrito está vacío.";
     if (unavailable) return `${unavailable.product.nombre} cambió de precio o ya no está disponible. Actualiza tu selección.`;
+    if (shortStock) return `Solo quedan ${shortStock.restantes} de ${shortStock.nombre}. Ajusta la cantidad.`;
     if (!form.nombre_cliente.trim()) return "Escribe tu nombre.";
     if (!form.telefono.trim() || form.telefono.replace(/\D/g, "").length < 6) return "Escribe un teléfono válido.";
     if (!form.direccion.trim()) return "Escribe la dirección completa de entrega.";

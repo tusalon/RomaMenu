@@ -79,6 +79,8 @@ create table if not exists public.productos (
   precio_anterior numeric(12,2) check (precio_anterior is null or precio_anterior >= 0),
   extra_nombre text not null default '',
   extra_costo numeric(12,2) not null default 0 check (extra_costo >= 0),
+  stock integer check (stock is null or stock >= 0),
+  stock_minimo integer not null default 0 check (stock_minimo >= 0),
   disponible boolean not null default true,
   recomendado boolean not null default false,
   nuevo boolean not null default false,
@@ -341,12 +343,24 @@ begin
     if v_cantidad < 1 or v_cantidad > 50 then
       raise exception 'La cantidad solicitada no es válida.';
     end if;
-    select p.id, p.nombre, p.precio, p.extra_nombre, p.extra_costo into v_producto
+    select p.id, p.nombre, p.precio, p.extra_nombre, p.extra_costo, p.stock into v_producto
     from public.productos p
     where p.id = (v_item->>'producto_id')::uuid
       and p.activo = true and p.disponible = true
-    for share;
+    for update;
     if not found then raise exception 'Uno de los productos ya no está disponible.'; end if;
+
+    -- stock nulo = sin control. Con control, se comprueba y se descuenta dentro
+    -- del mismo bloqueo, para que dos pedidos simultaneos no vendan la misma unidad.
+    if v_producto.stock is not null then
+      if v_producto.stock < v_cantidad then
+        raise exception 'Solo quedan % unidades de %.', v_producto.stock, v_producto.nombre;
+      end if;
+      update public.productos
+        set stock = stock - v_cantidad, updated_at = now()
+        where id = v_producto.id;
+    end if;
+
     v_subtotal := v_subtotal + (v_producto.precio * v_cantidad);
     if v_producto.extra_costo > 0 and length(trim(v_producto.extra_nombre)) > 0 then
       v_extras := v_extras + (v_producto.extra_costo * v_cantidad);
