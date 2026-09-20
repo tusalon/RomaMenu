@@ -1,5 +1,5 @@
 import { demoCatalog, initialDemoOrders } from "./demo-data";
-import { extrasFromOrder } from "./format";
+import { convertTotal, extrasFromOrder } from "./format";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { repairMojibake, repairMojibakeValue } from "./text-encoding";
 import type {
@@ -134,6 +134,7 @@ export async function createOrder(
   form: CheckoutData,
   cart: CartItem[],
   zone: DeliveryZone,
+  paymentMethod?: PaymentMethod | null,
 ): Promise<Order> {
   const supabase = getSupabase();
   const items = cart.map(({ product, quantity }) => {
@@ -170,6 +171,9 @@ export async function createOrder(
       costo_entrega: Number(result.costo_entrega),
       costo_extras: Number(result.costo_extras ?? 0),
       total: Number(result.total),
+      moneda_pago: String(result.moneda_pago ?? ""),
+      tasa_cambio: result.tasa_cambio == null ? null : Number(result.tasa_cambio),
+      total_moneda: result.total_moneda == null ? null : Number(result.total_moneda),
       estado: "nuevo",
       origen: "web",
       created_at: new Date().toISOString(),
@@ -189,12 +193,23 @@ export async function createOrder(
     costo_entrega: zone.costo,
     costo_extras: extras,
     total: subtotal + zone.costo + extras,
+    ...demoConversion(subtotal + zone.costo + extras, paymentMethod),
     estado: "nuevo",
     origen: "web-demo",
     created_at: new Date().toISOString(),
   };
   writeStorage(DEMO_ORDERS_KEY, [order, ...orders]);
   return order;
+}
+
+function demoConversion(total: number, paymentMethod?: PaymentMethod | null) {
+  const conversion = convertTotal(total, paymentMethod);
+  if (!conversion) return { moneda_pago: "", tasa_cambio: null, total_moneda: null };
+  return {
+    moneda_pago: conversion.moneda,
+    tasa_cambio: conversion.tasa,
+    total_moneda: conversion.total,
+  };
 }
 
 export function buildWhatsAppMessage(
@@ -247,6 +262,12 @@ export function buildWhatsAppMessage(
     `Entrega: ${currency(order.costo_entrega)}`,
     ...(order.costo_extras > 0 ? [`Otros gastos: ${currency(order.costo_extras)}`] : []),
     `TOTAL: ${currency(order.total)}`,
+    ...(order.total_moneda
+      ? [
+          `A PAGAR EN ${order.moneda_pago || "USD"}: ${order.total_moneda.toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${order.moneda_pago || "USD"}`,
+          `Tasa aplicada: 1 ${order.moneda_pago || "USD"} = ${currency(Number(order.tasa_cambio ?? 0))}`,
+        ]
+      : []),
     "",
     `Método de pago: ${payment?.nombre ?? "Sin especificar"}`,
     `Horario solicitado: ${order.horario_entrega || "Lo antes posible"}`,

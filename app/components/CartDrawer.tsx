@@ -11,9 +11,16 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
-import { extrasFromCart, extrasTotal, formatCurrency, orderStatusLabels } from "@/app/lib/format";
+import {
+  convertTotal,
+  extrasFromCart,
+  extrasTotal,
+  formatConversion,
+  formatCurrency,
+  orderStatusLabels,
+} from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
-import type { CartItem, CheckoutData, Order, PublicCatalog } from "@/app/lib/types";
+import type { CartItem, CheckoutData, Order, Product, PublicCatalog } from "@/app/lib/types";
 
 type CartDrawerProps = {
   open: boolean;
@@ -21,6 +28,7 @@ type CartDrawerProps = {
   items: CartItem[];
   subtotal: number;
   onClose: () => void;
+  onAdd: (product: Product, quantity?: number) => void;
   onUpdate: (productId: string, quantity: number) => void;
   onRemove: (productId: string) => void;
   onClear: () => void;
@@ -43,6 +51,7 @@ export function CartDrawer({
   items,
   subtotal,
   onClose,
+  onAdd,
   onUpdate,
   onRemove,
   onClear,
@@ -58,6 +67,22 @@ export function CartDrawer({
   const extras = extrasTotal(extraLines);
   const total = subtotal + delivery + extras;
   const symbol = catalog.settings.simbolo_moneda;
+  const paymentMethod = catalog.paymentMethods.find((item) => item.id === form.metodo_pago_id);
+  const conversion = convertTotal(total, paymentMethod);
+
+  // Sugerencias: los productos de la categoria elegida por el admin que aun no
+  // estan en el carrito. Sin categoria configurada, no se ofrece nada.
+  const suggestions = useMemo<Product[]>(() => {
+    const categoryId = catalog.settings.categoria_sugerencias_id;
+    if (!categoryId) return [];
+    const inCart = new Set(items.map((item) => item.product.id));
+    return catalog.products.filter(
+      (product) =>
+        product.categoria_id === categoryId &&
+        product.disponible &&
+        !inCart.has(product.id),
+    );
+  }, [catalog.products, catalog.settings.categoria_sugerencias_id, items]);
 
   const unavailable = useMemo(
     () => items.find((item) => {
@@ -97,7 +122,7 @@ export function CartDrawer({
     setError("");
     const whatsappWindow = window.open("about:blank", "_blank");
     try {
-      const order = await createOrder(form, items, zone!);
+      const order = await createOrder(form, items, zone!, paymentMethod);
       const message = buildWhatsAppMessage(order, catalog);
       const whatsappUrl = `https://wa.me/${catalog.settings.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
       if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
@@ -127,6 +152,9 @@ export function CartDrawer({
           <div className="confirmation-summary">
             <span><small>Estado</small><b>{orderStatusLabels[confirmedOrder.estado]}</b></span>
             <span><small>Total</small><b>{formatCurrency(confirmedOrder.total, symbol)}</b></span>
+            {confirmedOrder.total_moneda ? (
+              <span><small>A pagar en {confirmedOrder.moneda_pago || "USD"}</small><b>{confirmedOrder.total_moneda.toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {confirmedOrder.moneda_pago || "USD"}</b></span>
+            ) : null}
           </div>
           <div className="confirmation-actions">
             <button className="button button-primary" type="button" onClick={() => { setConfirmedOrder(null); onClose(); }}>Volver al catálogo</button>
@@ -197,10 +225,29 @@ export function CartDrawer({
               <label className="field"><span>Teléfono *</span><input value={form.telefono} onChange={(event) => updateField("telefono", event.target.value)} inputMode="tel" autoComplete="tel" placeholder="55555555" /></label>
               <label className="field full"><span>Dirección completa *</span><input value={form.direccion} onChange={(event) => updateField("direccion", event.target.value)} autoComplete="street-address" placeholder="Calle, número, reparto" /></label>
               <label className="field"><span>Zona de entrega *</span><select value={form.zona_id} onChange={(event) => updateField("zona_id", event.target.value)}><option value="">Selecciona una zona</option>{catalog.zones.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {formatCurrency(item.costo, symbol)}</option>)}</select></label>
-              <label className="field"><span>Método de pago *</span><select value={form.metodo_pago_id} onChange={(event) => updateField("metodo_pago_id", event.target.value)}><option value="">Selecciona</option>{catalog.paymentMethods.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
+              <label className="field"><span>Método de pago *</span><select value={form.metodo_pago_id} onChange={(event) => updateField("metodo_pago_id", event.target.value)}><option value="">Selecciona</option>{catalog.paymentMethods.map((item) => <option key={item.id} value={item.id}>{item.tasa_cup ? `${item.nombre} · 1 ${item.moneda || "USD"} = ${formatCurrency(item.tasa_cup, symbol)}` : item.nombre}</option>)}</select></label>
               <label className="field full"><span>Punto de referencia</span><input value={form.referencia} onChange={(event) => updateField("referencia", event.target.value)} placeholder="Ej.: frente al parque" /></label>
               <label className="field full"><span>Horario preferido</span><input type="time" value={form.horario_entrega} onChange={(event) => updateField("horario_entrega", event.target.value)} /></label>
               <label className="field full"><span>Observaciones</span><textarea value={form.observaciones} onChange={(event) => updateField("observaciones", event.target.value)} rows={3} placeholder="¿Cómo podemos preparar mejor tu pedido?" /></label>
+              {suggestions.length > 0 && (
+                <div className="field full checkout-suggestions">
+                  <span>¿Añades algo más?</span>
+                  <div className="suggestion-list">
+                    {suggestions.map((product) => (
+                      <button
+                        className="suggestion-chip"
+                        key={product.id}
+                        type="button"
+                        onClick={() => onAdd(product, 1)}
+                      >
+                        <b>{product.nombre}</b>
+                        <span>{formatCurrency(product.precio, symbol)}</span>
+                        <Plus size={15} aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {error && <div className="form-error" role="alert"><CircleAlert size={18} /> {error}</div>}
             </div>
             <div className="drawer-footer">
@@ -213,6 +260,12 @@ export function CartDrawer({
                   </span>
                 ))}
                 <strong>Total <b>{formatCurrency(total, symbol)}</b></strong>
+                {conversion && (
+                  <span className="checkout-conversion">
+                    Pagando con {paymentMethod?.nombre}: <b>{formatConversion(conversion)}</b>
+                    <small>Tasa declarada: 1 {conversion.moneda} = {formatCurrency(conversion.tasa, symbol)}</small>
+                  </span>
+                )}
               </div>
               <button className="button button-primary button-block" type="submit" disabled={submitting}>{submitting ? "Registrando pedido…" : "Confirmar y abrir WhatsApp"}</button>
               <small className="secure-note">El pedido se guarda antes de abrir WhatsApp.</small>

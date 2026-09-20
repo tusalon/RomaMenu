@@ -63,6 +63,12 @@ create table if not exists public.categorias (
   created_at timestamptz not null default now()
 );
 
+-- La categoria de sugerencias se declara aqui porque configuracion_negocio
+-- se crea antes que categorias y la clave foranea necesita que ya exista.
+alter table public.configuracion_negocio
+  add column if not exists categoria_sugerencias_id uuid
+  references public.categorias(id) on delete set null;
+
 create table if not exists public.productos (
   id uuid primary key default gen_random_uuid(),
   categoria_id uuid not null references public.categorias(id) on update cascade on delete restrict,
@@ -96,6 +102,8 @@ create table if not exists public.metodos_pago (
   id uuid primary key default gen_random_uuid(),
   nombre text not null,
   descripcion text not null default '',
+  moneda text not null default '',
+  tasa_cup numeric(12,4) check (tasa_cup is null or tasa_cup > 0),
   activo boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -132,6 +140,9 @@ create table if not exists public.pedidos (
   costo_entrega numeric(12,2) not null check (costo_entrega >= 0),
   costo_extras numeric(12,2) not null default 0 check (costo_extras >= 0),
   total numeric(12,2) not null check (total >= 0),
+  moneda_pago text not null default '',
+  tasa_cambio numeric(12,4),
+  total_moneda numeric(12,2),
   observaciones text not null default '',
   notas_internas text not null default '',
   estado public.estado_pedido not null default 'nuevo',
@@ -262,7 +273,10 @@ returns table (
   subtotal numeric,
   costo_entrega numeric,
   costo_extras numeric,
-  total numeric
+  total numeric,
+  moneda_pago text,
+  tasa_cambio numeric,
+  total_moneda numeric
 )
 language plpgsql
 security definer
@@ -282,6 +296,10 @@ declare
   v_metodo_id uuid;
   v_abierto boolean;
   v_aceptar_fuera boolean;
+  v_moneda text;
+  v_tasa numeric(12,4);
+  v_total numeric(12,2);
+  v_total_moneda numeric(12,2);
 begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     raise exception 'El carrito está vacío.';
@@ -310,9 +328,10 @@ begin
   where z.id = v_zona_id and z.activa = true;
   if not found then raise exception 'La zona de entrega no está disponible.'; end if;
 
-  if not exists (select 1 from public.metodos_pago where metodos_pago.id = v_metodo_id and activo = true) then
-    raise exception 'El método de pago no está disponible.';
-  end if;
+  select mp.moneda, mp.tasa_cup into v_moneda, v_tasa
+  from public.metodos_pago mp
+  where mp.id = v_metodo_id and mp.activo = true;
+  if not found then raise exception 'El método de pago no está disponible.'; end if;
   if not v_abierto and not v_aceptar_fuera then
     raise exception 'El negocio está cerrado y no acepta pedidos programados.';
   end if;
@@ -338,16 +357,30 @@ begin
     raise exception 'El pedido no alcanza el mínimo configurado para esta zona.';
   end if;
 
+  v_total := v_subtotal + v_entrega + v_extras;
+
+  -- Solo se convierte si el metodo declara tasa. Sin tasa, el metodo cobra en CUP
+  -- y el pedido queda sin conversion en vez de guardar un 1 enganoso.
+  if v_tasa is not null and v_tasa > 0 then
+    v_total_moneda := round(v_total / v_tasa, 2);
+    v_moneda := trim(coalesce(v_moneda, ''));
+  else
+    v_moneda := '';
+    v_tasa := null;
+    v_total_moneda := null;
+  end if;
+
   v_numero := lpad(nextval('public.pedido_numero_seq')::text, 4, '0');
   insert into public.pedidos (
     id, numero_pedido, nombre_cliente, telefono, direccion, zona_id,
     referencia, metodo_pago_id, horario_entrega, subtotal, costo_entrega,
-    costo_extras, total, observaciones, estado, origen
+    costo_extras, total, moneda_pago, tasa_cambio, total_moneda,
+    observaciones, estado, origen
   ) values (
     v_pedido_id, v_numero, trim(p_cliente->>'nombre_cliente'), trim(p_cliente->>'telefono'),
     trim(p_cliente->>'direccion'), v_zona_id, trim(coalesce(p_cliente->>'referencia', '')),
     v_metodo_id, trim(coalesce(p_cliente->>'horario_entrega', '')), v_subtotal,
-    v_entrega, v_extras, v_subtotal + v_entrega + v_extras,
+    v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda,
     trim(coalesce(p_cliente->>'observaciones', '')), 'nuevo', 'web'
   );
 
@@ -370,7 +403,7 @@ begin
   insert into public.historial_estados (pedido_id, estado_anterior, estado_nuevo)
   values (v_pedido_id, null, 'nuevo');
 
-  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_extras, v_subtotal + v_entrega + v_extras;
+  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda;
 end;
 $$;
 

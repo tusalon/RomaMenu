@@ -175,7 +175,7 @@ export function Storefront() {
 
       <button className="mobile-cart" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir carrito con ${cart.count} productos`}><ShoppingBag size={20} /><span>Ver carrito</span><b>{cart.count}</b></button>
       {toast && <div className="toast" role="status"><Check size={18} /> {toast}</div>}
-      <CartDrawer open={cartOpen} catalog={catalog} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
+      <CartDrawer open={cartOpen} catalog={catalog} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onAdd={cart.add} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
     </div>
   );
 }

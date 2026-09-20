@@ -75,3 +75,38 @@ export function extrasFromOrder(items: OrderItem[]): ExtraLine[] {
 export function extrasTotal(lines: ExtraLine[]) {
   return lines.reduce((sum, line) => sum + line.total, 0);
 }
+
+export type PaymentConversion = {
+  moneda: string;
+  tasa: number;
+  total: number;
+};
+
+/**
+ * Convierte un total en CUP a la moneda del metodo de pago.
+ * Devuelve null cuando el metodo no declara tasa: ese metodo cobra en CUP y no
+ * hay nada que convertir. Guardar un 1 en su lugar mentiria sobre el pedido.
+ *
+ * En el checkout esto es solo una vista previa; el importe que vale es el que
+ * calcula y guarda la base al crear el pedido.
+ */
+export function convertTotal(
+  total: number,
+  method?: { moneda?: string | null; tasa_cup?: number | null } | null,
+): PaymentConversion | null {
+  const tasa = Number(method?.tasa_cup ?? 0);
+  if (!(tasa > 0) || !(total > 0)) return null;
+  return {
+    moneda: (method?.moneda ?? "").trim() || "USD",
+    tasa,
+    total: Math.round((total / tasa) * 100) / 100,
+  };
+}
+
+export function formatConversion(conversion: PaymentConversion) {
+  const amount = conversion.total.toLocaleString("es-CU", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${amount} ${conversion.moneda}`;
+}

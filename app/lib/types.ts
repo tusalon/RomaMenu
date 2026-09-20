@@ -47,6 +47,10 @@ export type PaymentMethod = {
   id: string;
   nombre: string;
   descripcion?: string;
+  /** Moneda en la que cobra el metodo: "USD", "EUR"... Vacio si cobra en CUP. */
+  moneda: string;
+  /** Cuantos CUP vale una unidad de esa moneda. Nulo = no se convierte nada. */
+  tasa_cup?: number | null;
   activo: boolean;
 };
 
@@ -70,6 +74,8 @@ export type BusinessSettings = {
   color_primario: string;
   color_secundario: string;
   texto_bienvenida: string;
+  /** Categoria que se ofrece al cerrar el pedido. Nula = no se ofrece ninguna. */
+  categoria_sugerencias_id?: string | null;
 };
 
 export type CartItem = {
@@ -108,6 +114,10 @@ export type Order = CheckoutData & {
   costo_entrega: number;
   costo_extras: number;
   total: number;
+  /** Conversion congelada el dia del pedido. Vacia si se cobro en CUP. */
+  moneda_pago: string;
+  tasa_cambio?: number | null;
+  total_moneda?: number | null;
   estado: OrderStatus;
   origen: string;
   notas_internas?: string;

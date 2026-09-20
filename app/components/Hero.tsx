@@ -20,7 +20,7 @@ export function Hero({ settings, onOrder }: { settings: BusinessSettings; onOrde
       </div>
       <div className="hero-visual">
         <div className="hero-image-wrap">
-          <img src={settings.portada_url} alt="Mesa con comida casera recién preparada" />
+          <img src={settings.portada_url} alt={`${settings.nombre_negocio} — comida criolla. Pedidos por WhatsApp al ${settings.whatsapp}`} />
           <span className="hero-stamp"><ChefStamp /></span>
         </div>
         <div className="hero-note">

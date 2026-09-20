@@ -13,7 +13,7 @@ export const demoSettings: BusinessSettings = {
   nombre_negocio: "La Cocina de Miguelón",
   descripcion: "Comida casera cubana preparada al momento y llevada hasta tu puerta.",
   portada_url:
-    "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1600&q=86",
+    "https://res.cloudinary.com/uyvla7fj/image/upload/v1789935068/roma-menu/zvoktvwqqxiqfa1ttcv7.webp",
   whatsapp: "5355555555",
   telefono: "+53 5 555 5555",
   direccion: "Artemisa, Cuba",
@@ -29,6 +29,9 @@ export const demoSettings: BusinessSettings = {
   color_secundario: "#ee7d32",
   texto_bienvenida:
     "Comida casera preparada con sabor, calidad y cariño. Elige tus platos favoritos y recibe tu pedido directamente en casa.",
+  // En modo demostracion se ofrecen los postres al cerrar el pedido, para que
+  // la funcion se pueda probar sin Supabase conectado.
+  categoria_sugerencias_id: "postres",
 };
 
 export const demoCategories: Category[] = [
@@ -71,9 +74,9 @@ export const demoZones: DeliveryZone[] = [
 ];
 
 export const demoPaymentMethods: PaymentMethod[] = [
-  { id: "efectivo", nombre: "Efectivo", descripcion: "Paga al recibir tu pedido.", activo: true },
-  { id: "transferencia", nombre: "Transferencia", descripcion: "Te enviaremos los datos al confirmar.", activo: true },
-  { id: "pago-recibir", nombre: "Pago al recibir", descripcion: "Coordina el pago con el repartidor.", activo: true },
+  { id: "efectivo", nombre: "Efectivo", descripcion: "Paga al recibir tu pedido.", moneda: "", tasa_cup: null, activo: true },
+  { id: "transferencia", nombre: "Transferencia", descripcion: "Te enviaremos los datos al confirmar.", moneda: "", tasa_cup: null, activo: true },
+  { id: "zelle", nombre: "Zelle", descripcion: "Envía el importe en USD por Zelle.", moneda: "USD", tasa_cup: 420, activo: true },
 ];
 
 export const demoCatalog: PublicCatalog = {

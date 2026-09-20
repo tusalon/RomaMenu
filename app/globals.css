@@ -83,12 +83,12 @@ img { display: block; max-width: 100%; }
 .hero-visual { position: relative; padding: 18px 24px 42px 0; }
 .hero-image-wrap { position: relative; isolation: isolate; }
 .hero-image-wrap::before { content: ""; position: absolute; z-index: -1; width: 75%; height: 75%; right: -24px; top: -22px; border-radius: 44% 56% 42% 58%; background: #f3c9a8; transform: rotate(5deg); }
-.hero-image-wrap img { width: 100%; height: 505px; object-fit: cover; border-radius: 46% 54% 40% 60% / 46% 38% 62% 54%; box-shadow: var(--shadow); }
-.hero-stamp { position: absolute; top: 28px; left: -25px; width: 92px; height: 92px; display: grid; place-content: center; border: 5px solid var(--background); border-radius: 50%; background: var(--brand); color: white; text-align: center; transform: rotate(-8deg); box-shadow: 0 12px 25px rgba(66, 24, 20, .22); }
+.hero-image-wrap img { display: block; width: 100%; max-width: 420px; height: auto; aspect-ratio: 3 / 4; margin-inline: auto; object-fit: cover; border-radius: 24px; box-shadow: var(--shadow); }
+.hero-stamp { position: absolute; z-index: 1; top: -16px; left: -18px; width: 92px; height: 92px; display: grid; place-content: center; border: 5px solid var(--background); border-radius: 50%; background: var(--brand); color: white; text-align: center; transform: rotate(-8deg); box-shadow: 0 12px 25px rgba(66, 24, 20, .22); }
 .hero-stamp b, .hero-stamp small { display: block; font-family: Georgia, serif; }
 .hero-stamp b { font-size: 19px; }
 .hero-stamp small { color: #ffd5b1; font-size: 12px; font-style: italic; }
-.hero-note { position: absolute; right: -8px; bottom: 0; max-width: 305px; display: flex; align-items: center; gap: 12px; padding: 15px 18px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: var(--shadow); }
+.hero-note { position: relative; margin: 18px auto 0; max-width: 305px; display: flex; align-items: center; gap: 12px; padding: 15px 18px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: var(--shadow); }
 .hero-note > span { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 50%; background: #fff0d4; color: #e68d22; }
 .hero-note strong, .hero-note small { display: block; }
 .hero-note strong { font-family: Georgia, serif; font-size: 13px; }
@@ -373,7 +373,7 @@ img { display: block; max-width: 100%; }
   .main-nav a:nth-child(3) { display: none; }
   .hero { min-height: auto; gap: 40px; }
   .hero-trust { gap: 14px; }
-  .hero-image-wrap img { height: 430px; }
+  .hero-image-wrap img { max-width: 340px; }
   .product-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .admin-grid { grid-template-columns: repeat(2, 1fr); }
@@ -400,7 +400,7 @@ img { display: block; max-width: 100%; }
   .hero-trust { overflow-x: auto; padding-bottom: 3px; }
   .hero-trust span { min-width: 135px; }
   .hero-visual { padding: 10px 10px 35px; }
-  .hero-image-wrap img { height: 410px; }
+  .hero-image-wrap img { max-width: 320px; }
   .hero-stamp { left: -7px; width: 80px; height: 80px; }
   .hero-note { right: 0; }
   .recommended-strip .shell { display: block; }
@@ -444,7 +444,7 @@ img { display: block; max-width: 100%; }
 @media (max-width: 500px) {
   .hero-actions .button { flex: 1; padding-inline: 12px; }
   .hero-trust span:nth-child(2) { display: none; }
-  .hero-image-wrap img { height: 345px; }
+  .hero-image-wrap img { max-width: 270px; }
   .hero-note { max-width: 260px; }
   .section-heading h2 { font-size: 38px; }
   .dish-count { display: none; }
@@ -462,3 +462,20 @@ img { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Tasas de cambio y sugerencias del chef */
+.checkout-conversion { flex-direction: column; align-items: flex-start !important; gap: 2px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.checkout-conversion b { color: var(--brand); font-family: Georgia, serif; font-size: 17px; }
+.checkout-conversion small { color: var(--muted); font-size: 10px; }
+
+.checkout-suggestions > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.suggestion-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.suggestion-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-strong); color: var(--ink); font: inherit; font-size: 11px; cursor: pointer; transition: border-color .18s ease, transform .18s ease; }
+.suggestion-chip:hover, .suggestion-chip:focus-visible { border-color: var(--brand); transform: translateY(-1px); }
+.suggestion-chip b { font-size: 11px; }
+.suggestion-chip span { color: var(--muted); }
+.suggestion-chip svg { color: var(--brand); }
+
+.payment-rate { display: flex; gap: 6px; margin-top: 6px; }
+.payment-rate input { width: 92px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 10px; }
+.payment-rate input:focus-visible { border-color: var(--brand); outline: none; }
