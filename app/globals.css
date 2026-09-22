@@ -491,3 +491,4 @@ img { display: block; max-width: 100%; }
 /* Lista de reposicion del panel */
 .restock-list > div > div { min-width: 0; flex: 1; }
 .restock-list .status-badge { flex: 0 0 auto; }
+.field-hint { margin: -4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
