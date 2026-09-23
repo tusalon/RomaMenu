@@ -284,6 +284,7 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 declare
   v_pedido_id uuid := gen_random_uuid();
   v_numero text;
@@ -354,11 +355,11 @@ begin
     -- del mismo bloqueo, para que dos pedidos simultaneos no vendan la misma unidad.
     if v_producto.stock is not null then
       if v_producto.stock < v_cantidad then
-        raise exception 'Solo quedan % unidades de %.', v_producto.stock, v_producto.nombre;
+        raise exception 'Solo quedan % unidades de %.', v_producto.stock, trim(v_producto.nombre);
       end if;
-      update public.productos
-        set stock = stock - v_cantidad, updated_at = now()
-        where id = v_producto.id;
+      update public.productos pr
+        set stock = pr.stock - v_cantidad, updated_at = now()
+        where pr.id = v_producto.id;
     end if;
 
     v_subtotal := v_subtotal + (v_producto.precio * v_cantidad);
