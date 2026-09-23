@@ -5,6 +5,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   BarChart3,
   BellRing,
+  Archive,
   Boxes,
   ChefHat,
   ClipboardList,
@@ -32,6 +33,7 @@ import { extrasFromOrder, formatCurrency, formatDate, lowStockProducts, orderSta
 import { appPath } from "@/app/lib/site-path";
 import {
   archiveProduct,
+  deleteProduct,
   deleteDeliveryZone,
   deleteOrder,
   fetchAdminData,
@@ -488,13 +490,24 @@ function ProductsSection({ catalog, setCatalog }: { catalog: PublicCatalog; setC
     setCatalog((current) => current ? { ...current, products: current.products.some((item) => item.id === product.id) ? current.products.map((item) => item.id === product.id ? product : item) : [product, ...current.products] } : current);
     setEditing(null); setCreating(false);
   }
+  const [actionError, setActionError] = useState("");
+  async function remove(product: Product) {
+    if (!window.confirm(`¿Eliminar ${product.nombre} para siempre? Los pedidos anteriores conservan su nombre y su precio, pero el producto no se podrá recuperar. Si solo quieres quitarlo del catálogo, archívalo.`)) return;
+    setActionError("");
+    try {
+      await deleteProduct(product.id);
+      setCatalog((current) => current ? { ...current, products: current.products.filter((item) => item.id !== product.id) } : current);
+    } catch (requestError) {
+      setActionError(requestError instanceof Error ? requestError.message : "No se pudo eliminar el producto.");
+    }
+  }
   async function archive(product: Product) {
     if (!window.confirm(`¿Archivar ${product.nombre}? Dejará de aparecer en el catálogo.`)) return;
     await archiveProduct(product.id);
     setCatalog((current) => current ? { ...current, products: current.products.map((item) => item.id === product.id ? { ...item, activo: false } : item) } : current);
   }
   if (creating || editing) return <ProductEditor product={editing} catalog={catalog} onCancel={() => { setEditing(null); setCreating(false); }} onSave={saved} />;
-  return <><div className="admin-toolbar"><label className="search-box"><Search size={17} /><input placeholder="Buscar productos" /></label><button className="button button-primary button-small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nuevo producto</button></div><div className="admin-grid">{catalog.products.map((product) => <article className="manage-card" key={product.id}><img className="manage-card-image" src={product.imagen_url} alt={product.nombre} /><h3>{product.nombre}</h3><p>{product.descripcion}</p><div className="manage-card-meta"><strong>{formatCurrency(product.precio, catalog.settings.simbolo_moneda)}</strong>{(() => { const stock = stockState(product); const label = !product.activo ? "Archivado" : stock.agotado ? "Agotado" : stock.restantes != null ? `${stock.restantes} en stock` : "Disponible"; const tone = !product.activo ? "cancelado" : stock.agotado ? "cancelado" : stock.bajo ? "en_preparacion" : "entregado"; return <span className={`status-badge ${tone}`}>{label}</span>; })()}</div><div className="manage-card-actions"><button type="button" onClick={() => setEditing(product)}><Pencil size={12} /> Editar</button><button className="danger" type="button" onClick={() => archive(product)}><Trash2 size={12} /> Archivar</button></div></article>)}</div></>;
+  return <><div className="admin-toolbar"><label className="search-box"><Search size={17} /><input placeholder="Buscar productos" /></label><button className="button button-primary button-small" type="button" onClick={() => setCreating(true)}><Plus size={16} /> Nuevo producto</button></div>{actionError && <div className="inline-notice">{actionError}</div>}<div className="admin-grid">{catalog.products.map((product) => <article className="manage-card" key={product.id}><img className="manage-card-image" src={product.imagen_url} alt={product.nombre} /><h3>{product.nombre}</h3><p>{product.descripcion}</p><div className="manage-card-meta"><strong>{formatCurrency(product.precio, catalog.settings.simbolo_moneda)}</strong>{(() => { const stock = stockState(product); const label = !product.activo ? "Archivado" : stock.agotado ? "Agotado" : stock.restantes != null ? `${stock.restantes} en stock` : "Disponible"; const tone = !product.activo ? "cancelado" : stock.agotado ? "cancelado" : stock.bajo ? "en_preparacion" : "entregado"; return <span className={`status-badge ${tone}`}>{label}</span>; })()}</div><div className="manage-card-actions"><button type="button" onClick={() => setEditing(product)}><Pencil size={12} /> Editar</button><button type="button" onClick={() => archive(product)}><Archive size={12} /> Archivar</button><button className="danger" type="button" onClick={() => remove(product)}><Trash2 size={12} /> Eliminar</button></div></article>)}</div></>;
 }
 
 function ProductEditor({ product, catalog, onCancel, onSave }: { product: Product | null; catalog: PublicCatalog; onCancel: () => void; onSave: (product: Product) => Promise<void> }) {

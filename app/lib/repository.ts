@@ -503,6 +503,35 @@ export async function deleteDeliveryZone(zoneId: string) {
   });
 }
 
+/**
+ * Borra un producto de verdad, no lo archiva.
+ *
+ * El historial de pedidos no se rompe: pedido_items guarda el nombre, el
+ * precio y los cargos como valores propios, y su clave foranea es
+ * 'on delete set null'. Los pedidos viejos siguen mostrando lo que se vendio
+ * y a que precio; lo unico que se pierde es el enlace al producto.
+ */
+export async function deleteProduct(productId: string) {
+  const supabase = getSupabase();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from("productos")
+      .delete()
+      .eq("id", productId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("El producto no existe o no tienes permiso para eliminarlo.");
+    return;
+  }
+
+  const catalog = getDemoCatalog();
+  saveDemoCatalog({
+    ...catalog,
+    products: catalog.products.filter((product) => product.id !== productId),
+  });
+}
+
 export function isCloudinaryConfigured() {
   return Boolean(cloudinaryCloudName && cloudinaryUploadPreset);
 }
