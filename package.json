@@ -12,7 +12,7 @@
     "build:android:web": "cross-env CAPACITOR_BUILD=true GITHUB_PAGES=false NEXT_PUBLIC_BASE_PATH= vinext build",
     "android:sync": "npm run build:android:web && cap sync android",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs && node --test --experimental-strip-types tests/extras.test.ts tests/tasas.test.ts tests/stock.test.ts",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs && node --test --experimental-strip-types tests/extras.test.ts tests/tasas.test.ts tests/stock.test.ts tests/horario.test.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

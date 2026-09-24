@@ -492,3 +492,15 @@ img { display: block; max-width: 100%; }
 .restock-list > div > div { min-width: 0; flex: 1; }
 .restock-list .status-badge { flex: 0 0 auto; }
 .field-hint { margin: -4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+/* Horario semanal en Configuracion */
+.hours-editor { display: grid; gap: 6px; }
+.hours-row { display: grid; grid-template-columns: 120px 1fr auto 1fr; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #eee8e1; font-size: 11px; }
+.hours-row:last-child { border-bottom: 0; }
+.hours-row input[type="time"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font: inherit; }
+.hours-row > span { color: var(--muted); text-align: center; }
+.hours-row.is-off { color: var(--muted); }
+.hours-day { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.hours-closed { grid-column: 2 / -1; text-align: left !important; }
+.closed-banner.open-notice { background: #fff3df; color: #7a4a12; }
+.checkout-delivery-day b { color: var(--brand) !important; }

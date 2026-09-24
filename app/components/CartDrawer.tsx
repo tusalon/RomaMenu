@@ -16,16 +16,19 @@ import {
   extrasFromCart,
   extrasTotal,
   formatConversion,
+  describeWindow,
   formatCurrency,
+  formatDia,
   orderStatusLabels,
   stockState,
 } from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
-import type { CartItem, CheckoutData, Order, Product, PublicCatalog } from "@/app/lib/types";
+import type { CartItem, CheckoutData, Order, OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 
 type CartDrawerProps = {
   open: boolean;
   catalog: PublicCatalog;
+  orderWindow: OrderWindow | null;
   items: CartItem[];
   subtotal: number;
   onClose: () => void;
@@ -49,6 +52,7 @@ const emptyForm: CheckoutData = {
 export function CartDrawer({
   open,
   catalog,
+  orderWindow,
   items,
   subtotal,
   onClose,
@@ -124,7 +128,7 @@ export function CartDrawer({
     if (!zone) return "Selecciona una zona de entrega.";
     if (subtotal < (zone.pedido_minimo ?? catalog.settings.pedido_minimo)) return `El pedido mínimo para ${zone.nombre} es ${formatCurrency(zone.pedido_minimo ?? catalog.settings.pedido_minimo, symbol)}.`;
     if (!form.metodo_pago_id) return "Selecciona un método de pago.";
-    if (!catalog.settings.abierto && !catalog.settings.aceptar_fuera_horario) return catalog.settings.mensaje_cerrado;
+    if (orderWindow ? !orderWindow.acepta : !catalog.settings.abierto) return describeWindow(orderWindow) ?? catalog.settings.mensaje_cerrado;
     return "";
   }
 
@@ -169,6 +173,7 @@ export function CartDrawer({
           <p>Tu pedido <strong>#{confirmedOrder.numero_pedido}</strong> quedó guardado. Confirma el envío del mensaje en WhatsApp para que la cocina comience a prepararlo.</p>
           <div className="confirmation-summary">
             <span><small>Estado</small><b>{orderStatusLabels[confirmedOrder.estado]}</b></span>
+            {confirmedOrder.fecha_entrega ? <span><small>Entrega</small><b>{formatDia(confirmedOrder.fecha_entrega)}</b></span> : null}
             <span><small>Total</small><b>{formatCurrency(confirmedOrder.total, symbol)}</b></span>
             {confirmedOrder.total_moneda ? (
               <span><small>A pagar en {confirmedOrder.moneda_pago || "USD"}</small><b>{confirmedOrder.total_moneda.toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {confirmedOrder.moneda_pago || "USD"}</b></span>
@@ -277,6 +282,9 @@ export function CartDrawer({
                     {line.cantidad} × {formatCurrency(line.unitario, symbol)} en {line.nombre} <b>{formatCurrency(line.total, symbol)}</b>
                   </span>
                 ))}
+                {orderWindow?.acepta && orderWindow.fecha_entrega && orderWindow.fecha_entrega !== orderWindow.hoy && (
+                  <span className="checkout-delivery-day">Pedido para el <b>{formatDia(orderWindow.fecha_entrega)}</b></span>
+                )}
                 <strong>Total <b>{formatCurrency(total, symbol)}</b></strong>
                 {conversion && (
                   <span className="checkout-conversion">

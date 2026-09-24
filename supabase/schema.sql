@@ -46,6 +46,7 @@ create table if not exists public.configuracion_negocio (
   aceptar_fuera_horario boolean not null default false,
   mensaje_abierto text not null default 'Estamos abiertos.',
   mensaje_cerrado text not null default 'Ahora mismo estamos cerrados.',
+  pedidos_vispera_desde time default '18:00',
   color_primario text not null default '#8f241f',
   color_secundario text not null default '#ee7d32',
   redes_sociales jsonb not null default '{}'::jsonb,
@@ -145,6 +146,7 @@ create table if not exists public.pedidos (
   moneda_pago text not null default '',
   tasa_cambio numeric(12,4),
   total_moneda numeric(12,2),
+  fecha_entrega date,
   observaciones text not null default '',
   notas_internas text not null default '',
   estado public.estado_pedido not null default 'nuevo',
@@ -264,6 +266,89 @@ $$;
 revoke all on function public.es_admin() from public;
 grant execute on function public.es_admin() to authenticated;
 
+-- Decide si ahora se aceptan pedidos y para que dia de servicio, en hora de
+-- Cuba. Todo el calculo de fechas vive aqui: la tienda pregunta y la funcion de
+-- pedidos obedece, asi que la hora del telefono del cliente no importa.
+--
+-- Regla: los pedidos para un dia laborable D se aceptan desde la vispera a la
+-- hora 'pedidos_vispera_desde' hasta que D cierra. Con viernes a domingo y 18:00
+-- eso es una ventana continua de jueves 18:00 a domingo al cierre.
+create or replace function public.ventana_pedidos(p_ahora timestamptz default now())
+returns table (
+  acepta boolean,
+  hoy date,
+  fecha_entrega date,
+  hora_apertura time,
+  hora_cierre time,
+  abre_en timestamp
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+#variable_conflict use_column
+declare
+  v_local timestamp := p_ahora at time zone 'America/Havana';
+  v_abierto boolean;
+  v_fuera boolean;
+  v_vispera time;
+  v_dia date;
+  v_apertura time;
+  v_cierre time;
+  v_inicio timestamp;
+begin
+  select c.abierto, c.aceptar_fuera_horario, c.pedidos_vispera_desde
+    into v_abierto, v_fuera, v_vispera
+  from public.configuracion_negocio c
+  limit 1;
+
+  -- Interruptor general, el de vacaciones: apagado, no se acepta nada.
+  if not coalesce(v_abierto, false) then
+    return query select false, v_local::date, null::date, null::time, null::time, null::timestamp;
+    return;
+  end if;
+
+  -- Sin horario configurado se comporta como antes: abierto = acepta, para hoy.
+  if not exists (
+    select 1 from public.horarios_negocio h
+    where h.trabaja and h.hora_apertura is not null and h.hora_cierre is not null
+  ) then
+    return query select true, v_local::date, v_local::date, null::time, null::time, null::timestamp;
+    return;
+  end if;
+
+  -- El primer dia laborable cuyo servicio no ha terminado es el unico candidato.
+  for i in 0..7 loop
+    v_dia := v_local::date + i;
+    select h.hora_apertura, h.hora_cierre into v_apertura, v_cierre
+    from public.horarios_negocio h
+    where h.dia_semana = extract(dow from v_dia)::int
+      and h.trabaja and h.hora_apertura is not null and h.hora_cierre is not null;
+    continue when not found;
+    continue when v_local >= v_dia + v_cierre;
+
+    v_inicio := case
+      when v_fuera then '-infinity'::timestamp
+      when v_vispera is not null then (v_dia - 1) + v_vispera
+      else v_dia + v_apertura
+    end;
+
+    if v_local >= v_inicio then
+      return query select true, v_local::date, v_dia, v_apertura, v_cierre, null::timestamp;
+    else
+      return query select false, v_local::date, v_dia, v_apertura, v_cierre, v_inicio;
+    end if;
+    return;
+  end loop;
+
+  return query select false, v_local::date, null::date, null::time, null::time, null::timestamp;
+end;
+$$;
+
+revoke all on function public.ventana_pedidos(timestamptz) from public;
+grant execute on function public.ventana_pedidos(timestamptz) to anon, authenticated;
+
 drop function if exists public.crear_pedido_publico(jsonb, jsonb);
 create function public.crear_pedido_publico(
   p_cliente jsonb,
@@ -278,7 +363,8 @@ returns table (
   total numeric,
   moneda_pago text,
   tasa_cambio numeric,
-  total_moneda numeric
+  total_moneda numeric,
+  fecha_entrega date
 )
 language plpgsql
 security definer
@@ -297,8 +383,8 @@ declare
   v_cantidad integer;
   v_zona_id uuid;
   v_metodo_id uuid;
-  v_abierto boolean;
-  v_aceptar_fuera boolean;
+  v_acepta boolean;
+  v_fecha_entrega date;
   v_moneda text;
   v_tasa numeric(12,4);
   v_total numeric(12,2);
@@ -324,8 +410,8 @@ begin
     raise exception 'La zona o el método de pago no son válidos.';
   end;
 
-  select z.costo, coalesce(z.pedido_minimo, c.pedido_minimo), c.abierto, c.aceptar_fuera_horario
-    into v_entrega, v_minimo, v_abierto, v_aceptar_fuera
+  select z.costo, coalesce(z.pedido_minimo, c.pedido_minimo)
+    into v_entrega, v_minimo
   from public.zonas_entrega z
   cross join lateral (select * from public.configuracion_negocio limit 1) c
   where z.id = v_zona_id and z.activa = true;
@@ -335,8 +421,10 @@ begin
   from public.metodos_pago mp
   where mp.id = v_metodo_id and mp.activo = true;
   if not found then raise exception 'El método de pago no está disponible.'; end if;
-  if not v_abierto and not v_aceptar_fuera then
-    raise exception 'El negocio está cerrado y no acepta pedidos programados.';
+  select vp.acepta, vp.fecha_entrega into v_acepta, v_fecha_entrega
+  from public.ventana_pedidos(now()) vp;
+  if not coalesce(v_acepta, false) then
+    raise exception 'Ahora mismo no estamos recibiendo pedidos. Mira en la página cuándo abrimos.';
   end if;
 
   for v_item in select value from jsonb_array_elements(p_items) loop
@@ -389,13 +477,13 @@ begin
   insert into public.pedidos (
     id, numero_pedido, nombre_cliente, telefono, direccion, zona_id,
     referencia, metodo_pago_id, horario_entrega, subtotal, costo_entrega,
-    costo_extras, total, moneda_pago, tasa_cambio, total_moneda,
+    costo_extras, total, moneda_pago, tasa_cambio, total_moneda, fecha_entrega,
     observaciones, estado, origen
   ) values (
     v_pedido_id, v_numero, trim(p_cliente->>'nombre_cliente'), trim(p_cliente->>'telefono'),
     trim(p_cliente->>'direccion'), v_zona_id, trim(coalesce(p_cliente->>'referencia', '')),
     v_metodo_id, trim(coalesce(p_cliente->>'horario_entrega', '')), v_subtotal,
-    v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda,
+    v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda, v_fecha_entrega,
     trim(coalesce(p_cliente->>'observaciones', '')), 'nuevo', 'web'
   );
 
@@ -418,7 +506,7 @@ begin
   insert into public.historial_estados (pedido_id, estado_anterior, estado_nuevo)
   values (v_pedido_id, null, 'nuevo');
 
-  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda;
+  return query select v_pedido_id, v_numero, v_subtotal, v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda, v_fecha_entrega;
 end;
 $$;
 
@@ -439,7 +527,7 @@ alter table public.historial_estados enable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.configuracion_negocio, public.categorias, public.productos,
-  public.zonas_entrega, public.metodos_pago to anon, authenticated;
+  public.zonas_entrega, public.metodos_pago, public.horarios_negocio to anon, authenticated;
 grant select, insert, update, delete on public.perfiles_admin,
   public.configuracion_negocio, public.categorias, public.productos,
   public.zonas_entrega, public.metodos_pago, public.horarios_negocio,
@@ -456,6 +544,9 @@ drop policy if exists "Zonas activas publicas" on public.zonas_entrega;
 create policy "Zonas activas publicas" on public.zonas_entrega for select to anon, authenticated using (activa or public.es_admin());
 drop policy if exists "Pagos activos publicos" on public.metodos_pago;
 create policy "Pagos activos publicos" on public.metodos_pago for select to anon, authenticated using (activo or public.es_admin());
+
+drop policy if exists "Horario publico legible" on public.horarios_negocio;
+create policy "Horario publico legible" on public.horarios_negocio for select to anon, authenticated using (true);
 
 drop policy if exists "Admins ven perfiles" on public.perfiles_admin;
 create policy "Admins ven perfiles" on public.perfiles_admin for select to authenticated using (public.es_admin());

@@ -80,6 +80,30 @@ export type BusinessSettings = {
   texto_bienvenida: string;
   /** Categoria que se ofrece al cerrar el pedido. Nula = no se ofrece ninguna. */
   categoria_sugerencias_id?: string | null;
+  /** Hora de la vispera a la que abren los pedidos del dia siguiente. Nula = solo en horario. */
+  pedidos_vispera_desde?: string | null;
+};
+
+/** Un dia de la semana en horarios_negocio. dia_semana: 0 domingo ... 6 sabado. */
+export type BusinessHours = {
+  id?: string;
+  dia_semana: number;
+  hora_apertura: string | null;
+  hora_cierre: string | null;
+  trabaja: boolean;
+};
+
+/**
+ * Lo que responde ventana_pedidos(). Fechas y horas ya vienen en hora de Cuba
+ * como texto de reloj de pared ("2026-09-25", "12:30:00"): no se convierten.
+ */
+export type OrderWindow = {
+  acepta: boolean;
+  hoy: string;
+  fecha_entrega: string | null;
+  hora_apertura: string | null;
+  hora_cierre: string | null;
+  abre_en: string | null;
 };
 
 export type CartItem = {
@@ -122,6 +146,8 @@ export type Order = CheckoutData & {
   moneda_pago: string;
   tasa_cambio?: number | null;
   total_moneda?: number | null;
+  /** Dia de servicio para el que es el pedido, en hora de Cuba. */
+  fecha_entrega?: string | null;
   estado: OrderStatus;
   origen: string;
   notas_internas?: string;
@@ -135,5 +161,7 @@ export type PublicCatalog = {
   products: Product[];
   zones: DeliveryZone[];
   paymentMethods: PaymentMethod[];
+  /** Solo lo carga el panel; la tienda pregunta a ventana_pedidos(). */
+  hours?: BusinessHours[];
 };
 

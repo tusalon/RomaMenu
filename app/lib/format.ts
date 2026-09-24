@@ -1,4 +1,4 @@
-import type { CartItem, OrderItem, OrderStatus } from "./types";
+import type { CartItem, OrderItem, OrderStatus, OrderWindow } from "./types";
 
 export function formatCurrency(value: number, symbol = "$") {
   return `${symbol}${Number(value).toLocaleString("es-CU")}`;
@@ -160,4 +160,48 @@ export function lowStockProducts<T extends { disponible: boolean; stock?: number
       return state.restantes <= 0 || state.bajo;
     })
     .sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0));
+}
+
+const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+/** "12:30:00" -> "12:30 p. m.". El texto ya es hora de Cuba: solo se formatea. */
+export function formatHora(value?: string | null) {
+  if (!value) return "";
+  const [h, m] = value.split(":").map(Number);
+  const sufijo = h >= 12 ? "p. m." : "a. m.";
+  const hora12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hora12}:${String(m).padStart(2, "0")} ${sufijo}`;
+}
+
+/** "2026-09-25" -> "viernes 25". Se calcula en UTC para que ninguna zona lo mueva de dia. */
+export function formatDia(value?: string | null) {
+  if (!value) return "";
+  const [y, mo, d] = value.slice(0, 10).split("-").map(Number);
+  return `${DIAS[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()]} ${d}`;
+}
+
+/** "2026-09-24T18:00:00" -> "jueves 24 a las 6:00 p. m." */
+export function formatMomento(value?: string | null) {
+  if (!value) return "";
+  const [fecha, hora = "00:00"] = value.replace(" ", "T").split("T");
+  return `${formatDia(fecha)} a las ${formatHora(hora)}`;
+}
+
+/** El aviso que ve el cliente arriba de la tienda. Nulo si no hay nada que decir. */
+export function describeWindow(ventana: OrderWindow | null) {
+  if (!ventana) return null;
+  const horario = ventana.hora_apertura && ventana.hora_cierre
+    ? `de ${formatHora(ventana.hora_apertura)} a ${formatHora(ventana.hora_cierre)}`
+    : "";
+  if (!ventana.acepta) {
+    return ventana.abre_en
+      ? `Ahora no recibimos pedidos. Abrimos el ${formatMomento(ventana.abre_en)} para el ${formatDia(ventana.fecha_entrega)}.`
+      : null;
+  }
+  if (ventana.fecha_entrega && ventana.fecha_entrega !== ventana.hoy) {
+    return horario
+      ? `Estás pidiendo para el ${formatDia(ventana.fecha_entrega)}. Entregamos ${horario}`
+      : `Estás pidiendo para el ${formatDia(ventana.fecha_entrega)}.`;
+  }
+  return horario ? `Hoy entregamos ${horario}` : null;
 }

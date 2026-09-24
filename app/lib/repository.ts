@@ -1,8 +1,9 @@
 import { demoCatalog, initialDemoOrders } from "./demo-data";
-import { convertTotal, extrasFromOrder } from "./format";
+import { convertTotal, extrasFromOrder, formatDia } from "./format";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { repairMojibake, repairMojibakeValue } from "./text-encoding";
 import type {
+  BusinessHours,
   BusinessSettings,
   CartItem,
   Category,
@@ -10,6 +11,7 @@ import type {
   DeliveryZone,
   Order,
   OrderStatus,
+  OrderWindow,
   PaymentMethod,
   Product,
   PublicCatalog,
@@ -174,6 +176,7 @@ export async function createOrder(
       moneda_pago: String(result.moneda_pago ?? ""),
       tasa_cambio: result.tasa_cambio == null ? null : Number(result.tasa_cambio),
       total_moneda: result.total_moneda == null ? null : Number(result.total_moneda),
+      fecha_entrega: result.fecha_entrega ?? null,
       estado: "nuevo",
       origen: "web",
       created_at: new Date().toISOString(),
@@ -269,6 +272,7 @@ export function buildWhatsAppMessage(
         ]
       : []),
     "",
+    ...(order.fecha_entrega ? [`Entrega: ${formatDia(order.fecha_entrega)}`] : []),
     `Método de pago: ${payment?.nombre ?? "Sin especificar"}`,
     `Horario solicitado: ${order.horario_entrega || "Lo antes posible"}`,
     "",
@@ -358,17 +362,19 @@ export async function fetchAdminData() {
       supabase.from("productos").select("*").order("orden"),
       supabase.from("zonas_entrega").select("*").order("nombre"),
       supabase.from("metodos_pago").select("*").order("nombre"),
+      supabase.from("horarios_negocio").select("*"),
     ]),
     fetchAdminOrders(),
   ]);
 
-  const [settings, categories, products, zones, payments] = catalog;
+  const [settings, categories, products, zones, payments, hours] = catalog;
   const error = [
     settings.error,
     categories.error,
     products.error,
     zones.error,
     payments.error,
+    hours.error,
   ].find(Boolean);
   if (error) throw error;
 
@@ -378,6 +384,7 @@ export async function fetchAdminData() {
       categories: (categories.data ?? []) as Category[],
       products: (products.data ?? []) as Product[],
       zones: (zones.data ?? []) as DeliveryZone[],
+      hours: (hours.data ?? []) as BusinessHours[],
       paymentMethods: (payments.data ?? []) as PaymentMethod[],
     },
     orders,
@@ -530,6 +537,36 @@ export async function deleteProduct(productId: string) {
     ...catalog,
     products: catalog.products.filter((product) => product.id !== productId),
   });
+}
+
+/**
+ * Pregunta a la base si ahora se aceptan pedidos y para que dia. Toda la
+ * logica de horario y zona horaria vive en ventana_pedidos(); aqui no se
+ * calcula nada, para que la hora del telefono del cliente no cuente.
+ */
+export async function fetchOrderWindow(): Promise<OrderWindow> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    const hoy = new Date().toISOString().slice(0, 10);
+    return { acepta: true, hoy, fecha_entrega: hoy, hora_apertura: null, hora_cierre: null, abre_en: null };
+  }
+  const { data, error } = await supabase.rpc("ventana_pedidos");
+  if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) as OrderWindow;
+}
+
+export async function saveBusinessHours(hours: BusinessHours[]) {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  const rows = hours.map(({ dia_semana, hora_apertura, hora_cierre, trabaja }) => ({
+    dia_semana,
+    trabaja,
+    // Un dia que no se trabaja no guarda horas: asi no quedan horarios fantasma.
+    hora_apertura: trabaja ? hora_apertura : null,
+    hora_cierre: trabaja ? hora_cierre : null,
+  }));
+  const { error } = await supabase.from("horarios_negocio").upsert(rows, { onConflict: "dia_semana" });
+  if (error) throw error;
 }
 
 export function isCloudinaryConfigured() {

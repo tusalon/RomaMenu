@@ -7,11 +7,13 @@ import type { BusinessSettings } from "@/app/lib/types";
 
 type HeaderProps = {
   settings: BusinessSettings;
+  /** Si ahora se aceptan pedidos, segun el horario. */
+  accepting: boolean;
   cartCount: number;
   onCartOpen: () => void;
 };
 
-export function Header({ settings, cartCount, onCartOpen }: HeaderProps) {
+export function Header({ settings, accepting, cartCount, onCartOpen }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const whatsappUrl = `https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`;
 
@@ -75,8 +77,8 @@ export function Header({ settings, cartCount, onCartOpen }: HeaderProps) {
         </nav>
 
         <div className="header-actions">
-          <span className={settings.abierto ? "open-pill" : "open-pill closed"}>
-            <i /> {settings.abierto ? "Abierto" : "Cerrado"}
+          <span className={accepting ? "open-pill" : "open-pill closed"}>
+            <i /> {accepting ? "Abierto" : "Cerrado"}
           </span>
           <a className="icon-button whatsapp-header" href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Contactar por WhatsApp">
             <MessageCircle size={20} />

@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { demoCatalog } from "@/app/lib/demo-data";
-import { fetchPublicCatalog, isSupabaseConfigured } from "@/app/lib/repository";
-import type { Product, PublicCatalog } from "@/app/lib/types";
+import { describeWindow } from "@/app/lib/format";
+import { fetchOrderWindow, fetchPublicCatalog, isSupabaseConfigured } from "@/app/lib/repository";
+import type { OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 import { useCart } from "@/app/lib/use-cart";
 import { CartDrawer } from "./CartDrawer";
 import { Header } from "./Header";
@@ -35,6 +36,7 @@ export function Storefront() {
   const [sort, setSort] = useState<SortOption>("featured");
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [orderWindow, setOrderWindow] = useState<OrderWindow | null>(null);
   const cart = useCart();
 
   useEffect(() => {
@@ -46,6 +48,17 @@ export function Storefront() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const refresh = () => fetchOrderWindow().then(setOrderWindow).catch(() => undefined);
+    refresh();
+    const timer = window.setInterval(refresh, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Sin respuesta de la base todavia, manda el interruptor de siempre.
+  const accepting = orderWindow ? orderWindow.acepta : catalog.settings.abierto;
+  const windowNotice = describeWindow(orderWindow);
 
   const products = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
@@ -75,10 +88,12 @@ export function Storefront() {
 
   return (
     <div className="storefront" style={style}>
-      {!catalog.settings.abierto && (
-        <div className="closed-banner">{catalog.settings.mensaje_cerrado}</div>
-      )}
-      <Header settings={catalog.settings} cartCount={cart.count} onCartOpen={() => setCartOpen(true)} />
+      {!accepting ? (
+        <div className="closed-banner">{windowNotice ?? catalog.settings.mensaje_cerrado}</div>
+      ) : windowNotice ? (
+        <div className="closed-banner open-notice">{windowNotice}</div>
+      ) : null}
+      <Header settings={catalog.settings} accepting={accepting} cartCount={cart.count} onCartOpen={() => setCartOpen(true)} />
       <main>
         <Hero settings={catalog.settings} onOrder={() => setCartOpen(true)} />
 
@@ -167,7 +182,7 @@ export function Storefront() {
       <footer className="site-footer">
         <div className="shell footer-grid">
           <div><a className="brand footer-brand" href="#inicio"><span className="brand-mark"><ChefHat size={25} /></span><span><strong>La Cocina</strong><small>de Miguelón</small></span></a><p>{catalog.settings.descripcion}</p></div>
-          <div><small>Horario y entrega</small><strong>{catalog.settings.abierto ? catalog.settings.mensaje_abierto : catalog.settings.mensaje_cerrado}</strong><span>{catalog.settings.direccion}</span></div>
+          <div><small>Horario y entrega</small><strong>{accepting ? catalog.settings.mensaje_abierto : catalog.settings.mensaje_cerrado}</strong><span>{catalog.settings.direccion}</span></div>
           <div><small>¿Necesitas ayuda?</small><a href={`https://wa.me/${catalog.settings.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">Escríbenos por WhatsApp <ArrowRight size={15} /></a><span>{catalog.settings.telefono}</span></div>
         </div>
         <div className="shell footer-bottom"><span>© {new Date().getFullYear()} La Cocina de Miguelón</span><span>Comida casera · Entrega a domicilio</span></div>
@@ -175,7 +190,7 @@ export function Storefront() {
 
       <button className="mobile-cart" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir carrito con ${cart.count} productos`}><ShoppingBag size={20} /><span>Ver carrito</span><b>{cart.count}</b></button>
       {toast && <div className="toast" role="status"><Check size={18} /> {toast}</div>}
-      <CartDrawer open={cartOpen} catalog={catalog} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onAdd={cart.add} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
+      <CartDrawer open={cartOpen} catalog={catalog} orderWindow={orderWindow} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onAdd={cart.add} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
     </div>
   );
 }
