@@ -52,7 +52,12 @@ export function Storefront() {
 
   useEffect(() => {
     const refresh = () => fetchOrderWindow()
-      .then(setOrderWindow)
+      .then((next) => {
+        setOrderWindow(next);
+        // Si el horario cierra con el carrito abierto, se cierra. El contenido
+        // se conserva para cuando vuelva a abrir.
+        if (!next.acepta) setCartOpen(false);
+      })
       .catch(() => undefined)
       .finally(() => setWindowChecked(true));
     refresh();
@@ -66,10 +71,6 @@ export function Storefront() {
   // Hasta saber si se aceptan pedidos no se enseña nada para pedir: mejor que
   // aparezca un botón un segundo tarde que uno que desaparece al pulsarlo.
   const canOrder = windowChecked && accepting;
-
-  useEffect(() => {
-    if (!canOrder) setCartOpen(false);
-  }, [canOrder]);
 
   const products = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
