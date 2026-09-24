@@ -1,7 +1,7 @@
 import { ArrowDown, Bike, Clock3, Leaf, MessageCircle } from "lucide-react";
 import type { BusinessSettings } from "@/app/lib/types";
 
-export function Hero({ settings, onOrder }: { settings: BusinessSettings; onOrder: () => void }) {
+export function Hero({ settings, onOrder }: { settings: BusinessSettings; onOrder?: () => void }) {
   return (
     <section className="hero shell" id="inicio">
       <div className="hero-copy">
@@ -10,7 +10,7 @@ export function Hero({ settings, onOrder }: { settings: BusinessSettings; onOrde
         <p>{settings.texto_bienvenida}</p>
         <div className="hero-actions">
           <a className="button button-primary" href="#menu">Ver el menú <ArrowDown size={18} /></a>
-          <button className="button button-secondary" onClick={onOrder} type="button"><MessageCircle size={18} /> Pedir ahora</button>
+          {onOrder && <button className="button button-secondary" onClick={onOrder} type="button"><MessageCircle size={18} /> Pedir ahora</button>}
         </div>
         <div className="hero-trust">
           <span><Clock3 size={18} /><b>{settings.tiempo_entrega}</b><small>Entrega estimada</small></span>

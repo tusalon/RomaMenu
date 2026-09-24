@@ -7,8 +7,8 @@ import type { BusinessSettings } from "@/app/lib/types";
 
 type HeaderProps = {
   settings: BusinessSettings;
-  /** Si ahora se aceptan pedidos, segun el horario. */
-  accepting: boolean;
+  /** Si ahora se aceptan pedidos segun el horario. Nulo mientras no se sabe. */
+  accepting: boolean | null;
   cartCount: number;
   onCartOpen: () => void;
 };
@@ -73,21 +73,25 @@ export function Header({ settings, accepting, cartCount, onCartOpen }: HeaderPro
         <nav id="main-navigation" className={menuOpen ? "main-nav is-open" : "main-nav"} aria-label="Navegación principal">
           <a href="#menu" onClick={(event) => goToSection(event, "menu")}>Menú</a>
           <a href="#recomendados" onClick={(event) => goToSection(event, "recomendados")}>Recomendados</a>
-          <a href="#como-pedir" onClick={(event) => goToSection(event, "como-pedir")}>Cómo pedir</a>
+          {accepting && <a href="#como-pedir" onClick={(event) => goToSection(event, "como-pedir")}>Cómo pedir</a>}
         </nav>
 
         <div className="header-actions">
-          <span className={accepting ? "open-pill" : "open-pill closed"}>
-            <i /> {accepting ? "Abierto" : "Cerrado"}
-          </span>
+          {accepting !== null && (
+            <span className={accepting ? "open-pill" : "open-pill closed"}>
+              <i /> {accepting ? "Abierto" : "Cerrado"}
+            </span>
+          )}
           <a className="icon-button whatsapp-header" href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Contactar por WhatsApp">
             <MessageCircle size={20} />
           </a>
-          <button className="cart-button" onClick={onCartOpen} type="button" aria-label={`Abrir carrito con ${cartCount} productos`}>
-            <ShoppingBag size={19} />
-            <span>Carrito</span>
-            <b>{cartCount}</b>
-          </button>
+          {accepting && (
+            <button className="cart-button" onClick={onCartOpen} type="button" aria-label={`Abrir carrito con ${cartCount} productos`}>
+              <ShoppingBag size={19} />
+              <span>Carrito</span>
+              <b>{cartCount}</b>
+            </button>
+          )}
           <button className="menu-button" onClick={() => setMenuOpen((value) => !value)} type="button" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-controls="main-navigation" aria-expanded={menuOpen}>
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>

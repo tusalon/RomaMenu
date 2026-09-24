@@ -28,7 +28,11 @@ test("renders the public storefront with product content", async () => {
   assert.match(html, /Hoy cocinamos/);
   assert.match(html, /Nuestro menú/);
   assert.match(html, /Pollo asado/);
-  assert.match(html, /Ver carrito/);
+  // Antes de saber si hay horario de pedidos no se enseña nada para pedir: el
+  // HTML inicial no puede traer carrito ni botones de añadir.
+  assert.doesNotMatch(html, /Ver carrito/);
+  assert.doesNotMatch(html, /add-button/);
+  assert.doesNotMatch(html, /Pedir ahora/);
   assert.doesNotMatch(html, /admin\.webmanifest/);
   assert.doesNotMatch(html, /pwa-install-button/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);

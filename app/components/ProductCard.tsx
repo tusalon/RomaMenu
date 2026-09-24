@@ -9,7 +9,8 @@ type ProductCardProps = {
   product: Product;
   category?: Category;
   symbol: string;
-  onAdd: (product: Product, quantity: number) => void;
+  /** Sin onAdd la tarjeta solo enseña el plato: fuera de horario no se pide nada. */
+  onAdd?: (product: Product, quantity: number) => void;
 };
 
 export function ProductCard({ product, category, symbol, onAdd }: ProductCardProps) {
@@ -36,7 +37,7 @@ export function ProductCard({ product, category, symbol, onAdd }: ProductCardPro
             <strong>{formatCurrency(product.precio, symbol)}</strong>
             {product.precio_anterior && <del>{formatCurrency(product.precio_anterior, symbol)}</del>}
           </div>
-          <div className="add-controls">
+          {onAdd && <div className="add-controls">
             <div className="quantity-control" aria-label={`Cantidad de ${product.nombre}`}>
               <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Disminuir cantidad"><Minus size={14} /></button>
               <span>{quantity}</span>
@@ -45,7 +46,7 @@ export function ProductCard({ product, category, symbol, onAdd }: ProductCardPro
             <button className="add-button" type="button" disabled={stock.agotado} onClick={() => onAdd(product, Math.min(quantity, maxQuantity))} aria-label={`Añadir ${quantity} ${product.nombre} al carrito`}>
               <ShoppingBag size={17} /> <span>Añadir</span>
             </button>
-          </div>
+          </div>}
         </div>
       </div>
     </article>

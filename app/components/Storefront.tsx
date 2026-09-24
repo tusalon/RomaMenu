@@ -37,6 +37,7 @@ export function Storefront() {
   const [cartOpen, setCartOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [orderWindow, setOrderWindow] = useState<OrderWindow | null>(null);
+  const [windowChecked, setWindowChecked] = useState(false);
   const cart = useCart();
 
   useEffect(() => {
@@ -50,7 +51,10 @@ export function Storefront() {
   }, []);
 
   useEffect(() => {
-    const refresh = () => fetchOrderWindow().then(setOrderWindow).catch(() => undefined);
+    const refresh = () => fetchOrderWindow()
+      .then(setOrderWindow)
+      .catch(() => undefined)
+      .finally(() => setWindowChecked(true));
     refresh();
     const timer = window.setInterval(refresh, 60_000);
     return () => window.clearInterval(timer);
@@ -59,6 +63,13 @@ export function Storefront() {
   // Sin respuesta de la base todavia, manda el interruptor de siempre.
   const accepting = orderWindow ? orderWindow.acepta : catalog.settings.abierto;
   const windowNotice = describeWindow(orderWindow);
+  // Hasta saber si se aceptan pedidos no se enseña nada para pedir: mejor que
+  // aparezca un botón un segundo tarde que uno que desaparece al pulsarlo.
+  const canOrder = windowChecked && accepting;
+
+  useEffect(() => {
+    if (!canOrder) setCartOpen(false);
+  }, [canOrder]);
 
   const products = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
@@ -88,14 +99,14 @@ export function Storefront() {
 
   return (
     <div className="storefront" style={style}>
-      {!accepting ? (
+      {!windowChecked ? null : !accepting ? (
         <div className="closed-banner">{windowNotice ?? catalog.settings.mensaje_cerrado}</div>
       ) : windowNotice ? (
         <div className="closed-banner open-notice">{windowNotice}</div>
       ) : null}
-      <Header settings={catalog.settings} accepting={accepting} cartCount={cart.count} onCartOpen={() => setCartOpen(true)} />
+      <Header settings={catalog.settings} accepting={windowChecked ? accepting : null} cartCount={cart.count} onCartOpen={() => setCartOpen(true)} />
       <main>
-        <Hero settings={catalog.settings} onOrder={() => setCartOpen(true)} />
+        <Hero settings={catalog.settings} onOrder={canOrder ? () => setCartOpen(true) : undefined} />
 
         <section className="recommended-strip" id="recomendados">
           <div className="shell">
@@ -104,11 +115,16 @@ export function Storefront() {
               <div><small>Favoritos de nuestros clientes</small><strong>Lo más pedido esta semana</strong></div>
             </div>
             <div className="mini-products">
-              {recommended.map((product) => (
+              {recommended.map((product) => canOrder ? (
                 <button key={product.id} type="button" onClick={() => addToCart(product, 1)}>
                   <img src={product.imagen_url} alt="" />
                   <span><strong>{product.nombre}</strong><small>Añadir rápido <ArrowRight size={13} /></small></span>
                 </button>
+              ) : (
+                <a key={product.id} href="#menu">
+                  <img src={product.imagen_url} alt="" />
+                  <span><strong>{product.nombre}</strong><small>Ver en el menú <ArrowRight size={13} /></small></span>
+                </a>
               ))}
             </div>
           </div>
@@ -159,7 +175,7 @@ export function Storefront() {
           ) : products.length ? (
             <div className="product-grid">
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} onAdd={addToCart} />
+                <ProductCard key={product.id} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} onAdd={canOrder ? addToCart : undefined} />
               ))}
             </div>
           ) : (
@@ -167,7 +183,7 @@ export function Storefront() {
           )}
         </section>
 
-        <section className="how-section" id="como-pedir">
+        {canOrder && <section className="how-section" id="como-pedir">
           <div className="shell">
             <div className="section-heading compact"><div><span className="eyebrow light"><span /> Fácil y rápido</span><h2>Tu comida en <em>tres pasos</em></h2></div></div>
             <div className="steps-grid">
@@ -176,7 +192,7 @@ export function Storefront() {
               <article><span>03</span><div className="step-icon"><MessageCircle size={23} /></div><h3>Confirma por WhatsApp</h3><p>Guardamos el pedido y abrimos un mensaje listo para enviar.</p></article>
             </div>
           </div>
-        </section>
+        </section>}
       </main>
 
       <footer className="site-footer">
@@ -188,9 +204,9 @@ export function Storefront() {
         <div className="shell footer-bottom"><span>© {new Date().getFullYear()} La Cocina de Miguelón</span><span>Comida casera · Entrega a domicilio</span></div>
       </footer>
 
-      <button className="mobile-cart" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir carrito con ${cart.count} productos`}><ShoppingBag size={20} /><span>Ver carrito</span><b>{cart.count}</b></button>
+      {canOrder && <button className="mobile-cart" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir carrito con ${cart.count} productos`}><ShoppingBag size={20} /><span>Ver carrito</span><b>{cart.count}</b></button>}
       {toast && <div className="toast" role="status"><Check size={18} /> {toast}</div>}
-      <CartDrawer open={cartOpen} catalog={catalog} orderWindow={orderWindow} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onAdd={cart.add} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
+      <CartDrawer open={cartOpen && canOrder} catalog={catalog} orderWindow={orderWindow} items={cart.items} subtotal={cart.subtotal} onClose={() => setCartOpen(false)} onAdd={cart.add} onUpdate={cart.update} onRemove={cart.remove} onClear={cart.clear} />
     </div>
   );
 }

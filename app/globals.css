@@ -102,7 +102,7 @@ img { display: block; max-width: 100%; }
 .strip-heading small { color: #dca9a1; font-size: 9px; letter-spacing: .11em; text-transform: uppercase; }
 .strip-heading strong { margin-top: 4px; font-family: Georgia, serif; font-size: 15px; }
 .mini-products { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.mini-products button { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px; border: 1px solid rgba(255,255,255,.11); border-radius: 14px; background: rgba(255,255,255,.07); color: white; text-align: left; cursor: pointer; }
+.mini-products button, .mini-products a { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px; border: 1px solid rgba(255,255,255,.11); border-radius: 14px; background: rgba(255,255,255,.07); color: white; text-align: left; text-decoration: none; cursor: pointer; }
 .mini-products img { width: 50px; height: 50px; flex: 0 0 auto; object-fit: cover; border-radius: 10px; }
 .mini-products strong, .mini-products small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini-products strong { font-size: 12px; }
