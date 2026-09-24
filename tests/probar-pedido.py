@@ -18,18 +18,30 @@ FAKE = "00000000-0000-0000-0000-000000000000"
 
 
 def get(path):
-    return json.load(urllib.request.urlopen(urllib.request.Request(U + path, headers=H)))
+    return json.load(urllib.request.urlopen(urllib.request.Request(U + path, headers=H), timeout=30))
 
 
 def rpc(cliente, items):
     body = json.dumps({"p_cliente": cliente, "p_items": items}).encode()
     req = urllib.request.Request(U + "/rpc/crear_pedido_publico", data=body, headers=H, method="POST")
     try:
-        r = urllib.request.urlopen(req)
+        r = urllib.request.urlopen(req, timeout=30)
         return r.status, json.load(r)
     except urllib.error.HTTPError as e:
         return e.code, json.load(e)
 
+
+def ventana():
+    req = urllib.request.Request(U + "/rpc/ventana_pedidos", data=b"{}", headers=H, method="POST")
+    return json.load(urllib.request.urlopen(req, timeout=30))[0]
+
+
+# El horario se comprueba despues de zona y metodo de pago y antes de los
+# productos. Con la tienda cerrada, todo lo que va detras responde "cerrado":
+# eso es correcto, y el stock solo se puede probar en horario.
+CERRADO = "Ahora mismo no estamos recibiendo pedidos. Mira en la página cuándo abrimos."
+abierta = ventana()["acepta"]
+tras_horario = lambda msg: msg if abierta else CERRADO
 
 prods = get("/productos?select=id,nombre,stock")
 sin_control = next(p for p in prods if p["stock"] is None)
@@ -50,21 +62,23 @@ casos = [
     ("zona que no es uuid", {**ok, "zona_id": "abc"}, [it(sin_control)], "La zona o el método de pago no son válidos."),
     ("zona inexistente", {**ok, "zona_id": FAKE}, [it(sin_control)], "La zona de entrega no está disponible."),
     ("metodo inexistente", {**ok, "metodo_pago_id": FAKE}, [it(sin_control)], "El método de pago no está disponible."),
-    ("cantidad 0", ok, [it(sin_control, 0)], "La cantidad solicitada no es válida."),
-    ("cantidad 51", ok, [it(sin_control, 51)], "La cantidad solicitada no es válida."),
-    ("producto inexistente", ok, [fake], "Uno de los productos ya no está disponible."),
+    ("cantidad 0", ok, [it(sin_control, 0)], tras_horario("La cantidad solicitada no es válida.")),
+    ("cantidad 51", ok, [it(sin_control, 51)], tras_horario("La cantidad solicitada no es válida.")),
+    ("producto inexistente", ok, [fake], tras_horario("Uno de los productos ya no está disponible.")),
 ]
 if agotado:
     casos.append(("plato con stock 0", ok, [it(agotado)],
-                  f"Solo quedan 0 unidades de {agotado['nombre'].strip()}."))
+                  tras_horario(f"Solo quedan 0 unidades de {agotado['nombre'].strip()}.")))
 if con_stock:
     n = con_stock["stock"]
     casos.append((f"pedir {n + 1} de {n} en stock", ok, [it(con_stock, n + 1)],
-                  f"Solo quedan {n} unidades de {con_stock['nombre'].strip()}."))
+                  tras_horario(f"Solo quedan {n} unidades de {con_stock['nombre'].strip()}.")))
     # Descuenta una unidad y despues falla: la base tiene que deshacer el descuento.
     casos.append(("descuenta y falla despues", ok, [it(con_stock), fake],
-                  "Uno de los productos ya no está disponible."))
+                  tras_horario("Uno de los productos ya no está disponible.")))
 
+print("Tienda ABIERTA: se prueba todo." if abierta else
+      "Tienda CERRADA por horario: stock y rollback no se alcanzan; vuelve a pasarlo en horario.")
 fallos = 0
 for nombre, cliente, items, esperado in casos:
     code, body = rpc(cliente, items)
