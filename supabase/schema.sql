@@ -567,3 +567,75 @@ drop policy if exists "Administradores ven items" on public.pedido_items;
 create policy "Administradores ven items" on public.pedido_items for select to authenticated using (public.es_admin());
 drop policy if exists "Administradores ven historial" on public.historial_estados;
 create policy "Administradores ven historial" on public.historial_estados for select to authenticated using (public.es_admin());
+
+-- ===== Avisos push y monedas validas (migracion-push-y-monedas.sql) =====
+
+-- Y a partir de ahora la moneda solo puede ser vacia (CUP), USD o EUR.
+do $$
+begin
+  alter table public.metodos_pago
+    add constraint metodos_pago_moneda_valida check (moneda in ('', 'USD', 'EUR'));
+exception when duplicate_object then null;
+end $$;
+
+-- 2. Suscripciones de los moviles del admin.
+create table if not exists public.push_suscripciones (
+  id uuid primary key default gen_random_uuid(),
+  usuario_id uuid references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.push_suscripciones enable row level security;
+revoke all on public.push_suscripciones from anon;
+grant select, insert, update, delete on public.push_suscripciones to authenticated;
+drop policy if exists "Admins gestionan sus avisos" on public.push_suscripciones;
+create policy "Admins gestionan sus avisos" on public.push_suscripciones
+  for all to authenticated using (public.es_admin()) with check (public.es_admin());
+
+-- 3. Claves VAPID. Las genera la funcion avisar-pedido la primera vez. RLS sin
+--    politicas: solo la funcion (service role) puede leerlas; nadie las copia.
+create table if not exists public.push_config (
+  id smallint primary key default 1 check (id = 1),
+  vapid_publica text not null,
+  vapid_privada text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.push_config enable row level security;
+revoke all on public.push_config from anon, authenticated;
+
+-- 4. Cada pedido se avisa una sola vez.
+alter table public.pedidos add column if not exists avisado_at timestamptz;
+
+-- 5. Al entrar un pedido, la base llama a la funcion. pg_net encola la llamada
+--    y la envia al confirmarse el pedido, sin hacerlo esperar.
+create extension if not exists pg_net;
+
+create or replace function public.avisar_pedido_nuevo()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform net.http_post(
+    url := 'https://zfozknltebjdxwzwoyjf.supabase.co/functions/v1/avisar-pedido',
+    body := jsonb_build_object('pedido_id', new.id),
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'apikey', 'sb_publishable_alE5AiBzLESvnHLT3BD1Pw_51zIM7DH'
+    )
+  );
+  return new;
+exception when others then
+  -- Un fallo del aviso nunca puede tumbar un pedido.
+  raise warning 'avisar_pedido_nuevo: %', sqlerrm;
+  return new;
+end;
+$$;
+
+drop trigger if exists pedidos_avisar on public.pedidos;
+create trigger pedidos_avisar
+  after insert on public.pedidos
+  for each row execute function public.avisar_pedido_nuevo();

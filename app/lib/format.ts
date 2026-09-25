@@ -99,7 +99,7 @@ export function convertTotal(
   return {
     moneda: (method?.moneda ?? "").trim() || "USD",
     tasa,
-    total: Math.round((total / tasa) * 100) / 100,
+    total: Math.round((total * 100) / tasa + 1e-9) / 100,
   };
 }
 
@@ -204,4 +204,42 @@ export function describeWindow(ventana: OrderWindow | null) {
       : `Estás pidiendo para el ${formatDia(ventana.fecha_entrega)}.`;
   }
   return horario ? `Hoy entregamos ${horario}` : null;
+}
+
+/** "57,000 CUP ÷ 690 = 82.61 USD": la cuenta entera, para que nadie dude. */
+export function explainConversion(total: number, conversion: PaymentConversion, monedaLocal = "CUP") {
+  return `${Number(total).toLocaleString("es-CU")} ${monedaLocal} ÷ ${conversion.tasa.toLocaleString("es-CU")} = ${formatConversion(conversion)}`;
+}
+
+/** Horas cada `paso` minutos entre dos "HH:MM", ambas incluidas. Se guardan en 24 h y se ensenan con formatHora. */
+export function timeSlots(desde = "00:00", hasta = "23:30", paso = 30) {
+  const aMinutos = (hora: string) => { const [h, m] = hora.split(":").map(Number); return h * 60 + m; };
+  const slots: string[] = [];
+  for (let m = aMinutos(desde); m <= aMinutos(hasta); m += paso) {
+    slots.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  return slots;
+}
+
+/** Hora actual en La Habana como "HH:MM", sea cual sea la zona del telefono. */
+export function horaCuba(fecha = new Date()) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Havana", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(fecha);
+}
+
+/**
+ * Horas que el cliente puede elegir para su entrega: dentro del horario del dia
+ * del pedido y, si es para hoy, a partir de media hora desde ahora. La ultima es
+ * media hora antes del cierre.
+ */
+export function deliverySlots(ventana: OrderWindow | null, ahora = horaCuba()) {
+  if (!ventana?.hora_apertura || !ventana.hora_cierre) return [];
+  const [hc, mc] = ventana.hora_cierre.split(":").map(Number);
+  const ultimo = `${String(Math.floor((hc * 60 + mc - 30) / 60)).padStart(2, "0")}:${String((hc * 60 + mc - 30) % 60).padStart(2, "0")}`;
+  const slots = timeSlots(ventana.hora_apertura.slice(0, 5), ultimo);
+  if (ventana.fecha_entrega !== ventana.hoy) return slots;
+  const [h, m] = ahora.split(":").map(Number);
+  const minimo = h * 60 + m + 30;
+  return slots.filter((slot) => { const [sh, sm] = slot.split(":").map(Number); return sh * 60 + sm >= minimo; });
 }

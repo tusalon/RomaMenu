@@ -13,12 +13,15 @@ import {
 import { FormEvent, useMemo, useState } from "react";
 import {
   convertTotal,
+  deliverySlots,
+  describeWindow,
+  explainConversion,
   extrasFromCart,
   extrasTotal,
   formatConversion,
-  describeWindow,
   formatCurrency,
   formatDia,
+  formatHora,
   orderStatusLabels,
   stockState,
 } from "@/app/lib/format";
@@ -248,9 +251,9 @@ export function CartDrawer({
               <label className="field"><span>Teléfono *</span><input value={form.telefono} onChange={(event) => updateField("telefono", event.target.value)} inputMode="tel" autoComplete="tel" placeholder="55555555" /></label>
               <label className="field full"><span>Dirección completa *</span><input value={form.direccion} onChange={(event) => updateField("direccion", event.target.value)} autoComplete="street-address" placeholder="Calle, número, reparto" /></label>
               <label className="field"><span>Zona de entrega *</span><select value={form.zona_id} onChange={(event) => updateField("zona_id", event.target.value)}><option value="">Selecciona una zona</option>{catalog.zones.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {formatCurrency(item.costo, symbol)}</option>)}</select></label>
-              <label className="field"><span>Método de pago *</span><select value={form.metodo_pago_id} onChange={(event) => updateField("metodo_pago_id", event.target.value)}><option value="">Selecciona</option>{catalog.paymentMethods.map((item) => <option key={item.id} value={item.id}>{item.tasa_cup ? `${item.nombre} · 1 ${item.moneda || "USD"} = ${formatCurrency(item.tasa_cup, symbol)}` : item.nombre}</option>)}</select></label>
+              <label className="field"><span>Método de pago *</span><select value={form.metodo_pago_id} onChange={(event) => updateField("metodo_pago_id", event.target.value)}><option value="">Selecciona</option>{catalog.paymentMethods.map((item) => <option key={item.id} value={item.id}>{item.tasa_cup ? `${item.nombre} · 1 ${item.moneda || "USD"} = ${Number(item.tasa_cup).toLocaleString("es-CU")} ${catalog.settings.moneda || "CUP"}` : item.nombre}</option>)}</select></label>
               <label className="field full"><span>Punto de referencia</span><input value={form.referencia} onChange={(event) => updateField("referencia", event.target.value)} placeholder="Ej.: frente al parque" /></label>
-              <label className="field full"><span>Horario preferido</span><input type="time" value={form.horario_entrega} onChange={(event) => updateField("horario_entrega", event.target.value)} /></label>
+              <label className="field full"><span>Hora de entrega</span><select value={form.horario_entrega} onChange={(event) => updateField("horario_entrega", event.target.value)}><option value="">Lo antes posible</option>{deliverySlots(orderWindow).map((slot) => <option key={slot} value={slot}>{formatHora(slot)}</option>)}</select></label>
               <label className="field full"><span>Observaciones</span><textarea value={form.observaciones} onChange={(event) => updateField("observaciones", event.target.value)} rows={3} placeholder="¿Cómo podemos preparar mejor tu pedido?" /></label>
               {suggestions.length > 0 && (
                 <div className="field full checkout-suggestions">
@@ -288,8 +291,8 @@ export function CartDrawer({
                 <strong>Total <b>{formatCurrency(total, symbol)}</b></strong>
                 {conversion && (
                   <span className="checkout-conversion">
-                    Pagando con {paymentMethod?.nombre}: <b>{formatConversion(conversion)}</b>
-                    <small>Tasa declarada: 1 {conversion.moneda} = {formatCurrency(conversion.tasa, symbol)}</small>
+                    A pagar por {paymentMethod?.nombre}: <b>{formatConversion(conversion)}</b>
+                    <small>{explainConversion(total, conversion, catalog.settings.moneda || "CUP")}</small>
                   </span>
                 )}
               </div>

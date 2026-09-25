@@ -13,9 +13,9 @@ import {
   Sparkles,
   UtensilsCrossed,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { demoCatalog } from "@/app/lib/demo-data";
-import { describeWindow } from "@/app/lib/format";
+import { describeWindow, stockState } from "@/app/lib/format";
 import { fetchOrderWindow, fetchPublicCatalog, isSupabaseConfigured } from "@/app/lib/repository";
 import type { OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 import { useCart } from "@/app/lib/use-cart";
@@ -87,10 +87,27 @@ export function Storefront() {
 
   const recommended = catalog.products.filter((product) => product.activo && product.disponible && product.recomendado).slice(0, 3);
 
-  function addToCart(product: Product, quantity: number) {
-    cart.add(product, quantity);
-    setToast(`${quantity} × ${product.nombre} añadido al carrito`);
-    window.setTimeout(() => setToast(""), 2400);
+  const toastTimer = useRef(0);
+  function showToast(text: string) {
+    setToast(text);
+    // Cada toque reinicia el aviso: pulsando rapido no se borra a medias.
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(""), 2400);
+  }
+
+  const inCart = (productId: string) => cart.items.find((item) => item.product.id === productId)?.quantity ?? 0;
+
+  function addToCart(product: Product) {
+    const nombre = product.nombre.trim();
+    const actual = inCart(product.id);
+    const restantes = stockState(product).restantes;
+    if (restantes != null && actual >= restantes) {
+      showToast(`Solo quedan ${restantes} de ${nombre}`);
+      return;
+    }
+    cart.add(product, 1);
+    const total = actual + 1;
+    showToast(`Añadiste ${total} ${total === 1 ? "plato" : "platos"} de ${nombre}`);
   }
 
   const style = {
@@ -117,7 +134,7 @@ export function Storefront() {
             </div>
             <div className="mini-products">
               {recommended.map((product) => canOrder ? (
-                <button key={product.id} type="button" onClick={() => addToCart(product, 1)}>
+                <button key={product.id} type="button" onClick={() => addToCart(product)}>
                   <img src={product.imagen_url} alt="" />
                   <span><strong>{product.nombre}</strong><small>Añadir rápido <ArrowRight size={13} /></small></span>
                 </button>
@@ -176,7 +193,7 @@ export function Storefront() {
           ) : products.length ? (
             <div className="product-grid">
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} onAdd={canOrder ? addToCart : undefined} />
+                <ProductCard key={product.id} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} inCart={inCart(product.id)} onAdd={canOrder ? addToCart : undefined} />
               ))}
             </div>
           ) : (

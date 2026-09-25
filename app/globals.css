@@ -504,3 +504,13 @@ img { display: block; max-width: 100%; }
 .hours-closed { grid-column: 2 / -1; text-align: left !important; }
 .closed-banner.open-notice { background: #fff3df; color: #7a4a12; }
 .checkout-delivery-day b { color: var(--brand) !important; }
+
+/* Metodos de pago: moneda y tasa con su etiqueta a la vista */
+.payment-rate { flex-wrap: wrap; align-items: center; }
+.payment-rate label { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.payment-rate select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 10px; }
+.payment-rate-warning { flex-basis: 100%; color: #a3441c; font-size: 10px; font-style: normal; }
+.hours-row select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font: inherit; font-size: 11px; }
+.order-total-moneda { border-top: 0; padding-top: 0; }
+.order-total-moneda small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 400; }
+.admin-mode-warning { border: 0; background: #fff1e0; color: #8a4a12; cursor: pointer; font: inherit; }

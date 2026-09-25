@@ -1,5 +1,6 @@
 import { demoCatalog, initialDemoOrders } from "./demo-data";
-import { convertTotal, extrasFromOrder, formatDia } from "./format";
+import { convertTotal, extrasFromOrder, formatDia, formatHora } from "./format";
+import { appPath } from "./site-path";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { repairMojibake, repairMojibakeValue } from "./text-encoding";
 import type {
@@ -267,14 +268,14 @@ export function buildWhatsAppMessage(
     `TOTAL: ${currency(order.total)}`,
     ...(order.total_moneda
       ? [
-          `A PAGAR EN ${order.moneda_pago || "USD"}: ${order.total_moneda.toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${order.moneda_pago || "USD"}`,
-          `Tasa aplicada: 1 ${order.moneda_pago || "USD"} = ${currency(Number(order.tasa_cambio ?? 0))}`,
+          `A PAGAR POR ${(payment?.nombre ?? "").toUpperCase()}: ${order.total_moneda.toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${order.moneda_pago || "USD"}`,
+          `(${Number(order.total).toLocaleString("es-CU")} ${catalog.settings.moneda || "CUP"} ÷ ${Number(order.tasa_cambio ?? 0).toLocaleString("es-CU")})`,
         ]
       : []),
     "",
     ...(order.fecha_entrega ? [`Entrega: ${formatDia(order.fecha_entrega)}`] : []),
     `Método de pago: ${payment?.nombre ?? "Sin especificar"}`,
-    `Horario solicitado: ${order.horario_entrega || "Lo antes posible"}`,
+    `Hora de entrega: ${order.horario_entrega ? formatHora(order.horario_entrega) : "Lo antes posible"}`,
     "",
     `Observaciones: ${order.observaciones || "Ninguna"}`,
   ].join("\n");
@@ -566,6 +567,48 @@ export async function saveBusinessHours(hours: BusinessHours[]) {
     hora_cierre: trabaja ? hora_cierre : null,
   }));
   const { error } = await supabase.from("horarios_negocio").upsert(rows, { onConflict: "dia_semana" });
+  if (error) throw error;
+}
+
+function base64UrlToBytes(value: string) {
+  const base64 = (value + "=".repeat((4 - (value.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+}
+
+/**
+ * Suscribe este dispositivo a los avisos push de pedidos nuevos y lo guarda en
+ * push_suscripciones. Se puede llamar cada vez que se abre el panel: si ya
+ * estaba suscrito, solo refresca la fila.
+ *
+ * Necesita navegador con Push (Chrome en Android, o la app instalada en iPhone).
+ * La APK no lo tiene: su WebView no trae servicio de push.
+ */
+export async function savePushSubscription() {
+  const supabase = getSupabase();
+  if (!supabase) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    throw new Error("Este navegador no recibe avisos push. En iPhone, instala el panel en la pantalla de inicio.");
+  }
+  await navigator.serviceWorker.register(appPath("/admin-notifications-sw.js"), { scope: appPath("/admin/") });
+  const registration = await navigator.serviceWorker.ready;
+
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    const { data, error } = await supabase.functions.invoke("avisar-pedido", { body: { accion: "clave" } });
+    if (error) throw new Error(`No se pudo pedir la clave de avisos: ${error.message}`);
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToBytes(data.publicKey),
+    });
+  }
+
+  const { endpoint, keys } = subscription.toJSON();
+  if (!endpoint || !keys?.p256dh || !keys?.auth) throw new Error("La suscripción de avisos llegó incompleta.");
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.from("push_suscripciones").upsert(
+    { endpoint, p256dh: keys.p256dh, auth: keys.auth, usuario_id: auth.user?.id ?? null },
+    { onConflict: "endpoint" },
+  );
   if (error) throw error;
 }
 
