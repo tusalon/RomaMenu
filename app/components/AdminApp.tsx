@@ -386,9 +386,7 @@ export function AdminApp() {
               </button>
             )}
             {notificationPermission === "granted" && !pushProblem && <span className="admin-mode admin-mode-success"><BellRing size={13} /> Avisos activos</span>}
-            {notificationPermission === "granted" && pushProblem && <button className="admin-mode admin-mode-warning" type="button" title={pushProblem} onClick={() => { void enableNotifications(); window.alert(`Los avisos solo llegan con el panel abierto.
-
-${pushProblem}`); }}><BellRing size={13} /> Avisos sin activar</button>}
+            {notificationPermission === "granted" && pushProblem && <button className="admin-mode admin-mode-warning" type="button" title={pushProblem} onClick={() => { void enableNotifications(); window.alert(`Los avisos solo llegan con el panel abierto.\n\n${pushProblem}`); }}><BellRing size={13} /> Avisos sin activar</button>}
             {notificationPermission === "denied" && <span className="admin-mode" title="Permite las notificaciones desde la configuración del navegador.">Alertas bloqueadas</span>}
             {notificationPermission === "unsupported" && <span className="admin-mode">Alertas no disponibles</span>}
             <a className="button button-secondary button-small" href={appPath("/")} target="_blank" rel="noreferrer">Ver tienda</a>

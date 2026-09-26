@@ -24,8 +24,10 @@ import {
   formatHora,
   orderStatusLabels,
   stockState,
+  trackingUrl,
 } from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
+import { appPath } from "@/app/lib/site-path";
 import type { CartItem, CheckoutData, Order, OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 
 type CartDrawerProps = {
@@ -148,7 +150,7 @@ export function CartDrawer({
     const whatsappWindow = window.open("about:blank", "_blank");
     try {
       const order = await createOrder(form, items, zone!, paymentMethod);
-      const message = buildWhatsAppMessage(order, catalog);
+      const message = buildWhatsAppMessage(order, catalog, trackingUrl(window.location.origin, appPath("/pedido/"), order.id));
       const whatsappUrl = `https://wa.me/${catalog.settings.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
       if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
       else window.open(whatsappUrl, "_blank", "noopener,noreferrer");
@@ -183,7 +185,8 @@ export function CartDrawer({
             ) : null}
           </div>
           <div className="confirmation-actions">
-            <button className="button button-primary" type="button" onClick={() => { setConfirmedOrder(null); onClose(); }}>Volver al catálogo</button>
+            <a className="button button-primary" href={trackingUrl(window.location.origin, appPath("/pedido/"), confirmedOrder.id)}>Seguir mi pedido</a>
+            <button className="button button-secondary" type="button" onClick={() => { setConfirmedOrder(null); onClose(); }}>Volver al catálogo</button>
             <a className="button button-secondary" href={`https://wa.me/${catalog.settings.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">Contactar al negocio</a>
           </div>
         </div>

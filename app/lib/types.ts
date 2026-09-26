@@ -165,3 +165,22 @@ export type PublicCatalog = {
   hours?: BusinessHours[];
 };
 
+
+/** Lo que devuelve seguimiento_pedido(): solo lo que puede ver quien tenga el enlace. */
+export type OrderTracking = {
+  numero_pedido: string;
+  estado: OrderStatus;
+  nombre: string;
+  creado: string;
+  fecha_entrega: string | null;
+  horario_entrega: string;
+  total: number;
+  metodo_pago: string | null;
+  moneda_pago: string;
+  total_moneda: number | null;
+  items: { nombre: string; cantidad: number }[];
+  historial: { estado: OrderStatus; fecha: string }[];
+  negocio: string;
+  whatsapp: string;
+  simbolo_moneda: string;
+};

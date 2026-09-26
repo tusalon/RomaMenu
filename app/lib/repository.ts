@@ -12,6 +12,7 @@ import type {
   DeliveryZone,
   Order,
   OrderStatus,
+  OrderTracking,
   OrderWindow,
   PaymentMethod,
   Product,
@@ -219,6 +220,7 @@ function demoConversion(total: number, paymentMethod?: PaymentMethod | null) {
 export function buildWhatsAppMessage(
   order: Order,
   catalog: PublicCatalog,
+  seguimiento?: string,
 ): string {
   const zone = catalog.zones.find((item) => item.id === order.zona_id);
   const payment = catalog.paymentMethods.find(
@@ -250,6 +252,7 @@ export function buildWhatsAppMessage(
     "NUEVO PEDIDO — LA COCINA DE MIGUELÓN",
     "",
     `Pedido: #${order.numero_pedido}`,
+    ...(seguimiento ? [`Sigue tu pedido aquí: ${seguimiento}`] : []),
     "",
     `Cliente: ${order.nombre_cliente}`,
     `Teléfono: ${order.telefono}`,
@@ -568,6 +571,18 @@ export async function saveBusinessHours(hours: BusinessHours[]) {
   }));
   const { error } = await supabase.from("horarios_negocio").upsert(rows, { onConflict: "dia_semana" });
   if (error) throw error;
+}
+
+/** Estado de un pedido para quien tenga su enlace. Null si el id no existe. */
+export async function fetchOrderTracking(orderId: string): Promise<OrderTracking | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("seguimiento_pedido", { p_id: orderId });
+  // Un id mal formado no es un error de la tienda: es un enlace roto.
+  if (error?.code === "22P02") return null;
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as OrderTracking | undefined;
+  return row ? repairMojibakeValue(row) : null;
 }
 
 function base64UrlToBytes(value: string) {

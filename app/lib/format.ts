@@ -243,3 +243,32 @@ export function deliverySlots(ventana: OrderWindow | null, ahora = horaCuba()) {
   const minimo = h * 60 + m + 30;
   return slots.filter((slot) => { const [sh, sm] = slot.split(":").map(Number); return sh * 60 + sm >= minimo; });
 }
+
+/** Los pasos que ve el cliente. Varios estados internos caen en el mismo paso. */
+export const TRACKING_STEPS = ["Recibido", "Confirmado", "En la cocina", "En camino", "Entregado"] as const;
+
+const STEP_OF: Record<OrderStatus, number> = {
+  nuevo: 0,
+  pendiente_confirmacion: 0,
+  confirmado: 1,
+  en_preparacion: 2,
+  listo: 2,
+  en_camino: 3,
+  entregado: 4,
+  cancelado: -1,
+};
+
+/** Paso actual (0-4) y la hora a la que se llego a cada paso, si consta. */
+export function trackingProgress(estado: OrderStatus, historial: { estado: OrderStatus; fecha: string }[] = []) {
+  const horas: (string | null)[] = TRACKING_STEPS.map(() => null);
+  for (const entrada of historial) {
+    const paso = STEP_OF[entrada.estado];
+    if (paso >= 0 && !horas[paso]) horas[paso] = entrada.fecha;
+  }
+  return { paso: STEP_OF[estado], cancelado: estado === "cancelado", horas };
+}
+
+/** Enlace de seguimiento de un pedido, en el mismo sitio donde se hizo. */
+export function trackingUrl(origin: string, basePath: string, orderId: string) {
+  return `${origin}${basePath}?id=${encodeURIComponent(orderId)}`;
+}

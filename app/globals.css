@@ -514,3 +514,45 @@ img { display: block; max-width: 100%; }
 .order-total-moneda { border-top: 0; padding-top: 0; }
 .order-total-moneda small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 400; }
 .admin-mode-warning { border: 0; background: #fff1e0; color: #8a4a12; cursor: pointer; font: inherit; }
+
+/* Seguimiento del pedido (pagina publica /pedido/) */
+.tracking-page { min-height: 100vh; display: grid; align-content: start; justify-items: center; gap: 22px; padding: 28px 18px 48px; background: var(--background); }
+.tracking-card { width: min(460px, 100%); padding: 26px 22px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface-strong); box-shadow: var(--shadow); }
+.tracking-card h1 { margin: 8px 0 6px; font-family: Georgia, serif; font-size: 28px; font-weight: 500; letter-spacing: -.03em; line-height: 1.05; }
+.tracking-when { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+.tracking-when b { color: var(--ink); }
+.tracking-steps { display: grid; margin: 0 0 22px; padding: 0; list-style: none; }
+.tracking-steps li { position: relative; display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 12px; min-height: 44px; color: var(--muted); font-size: 14px; }
+.tracking-steps li:not(:last-child)::after { content: ""; position: absolute; left: 12px; top: 32px; bottom: -12px; width: 2px; background: var(--line); }
+.tracking-steps li.done:not(:last-child)::after { background: var(--green); }
+.tracking-dot { position: relative; z-index: 1; width: 26px; height: 26px; display: grid; place-items: center; border: 2px solid var(--line); border-radius: 50%; background: var(--surface-strong); color: white; }
+.tracking-steps li.done .tracking-dot { border-color: var(--green); background: var(--green); }
+.tracking-steps li.current .tracking-dot { border-color: var(--brand); background: var(--brand); box-shadow: 0 0 0 5px rgba(143, 36, 31, .12); }
+.tracking-steps li.current, .tracking-steps li.done { color: var(--ink); }
+.tracking-steps li.current .tracking-step-name { font-weight: 700; }
+.tracking-steps small { color: var(--muted); font-size: 11px; }
+.tracking-items { display: grid; gap: 8px; margin-bottom: 20px; padding: 16px; border-radius: 16px; background: var(--background); font-size: 13px; }
+.tracking-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; border-top: 1px solid var(--line); }
+.tracking-total strong { color: var(--brand); font-family: Georgia, serif; font-size: 20px; }
+.tracking-total-moneda { padding-top: 0; border-top: 0; }
+.tracking-total-moneda strong { font-size: 17px; }
+.tracking-method { margin: 0; color: var(--muted); font-size: 12px; }
+.tracking-refresh { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 14px 0 0; color: var(--muted); font-size: 11px; }
+.tracking-cancelled { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; padding: 12px 14px; border-radius: 12px; background: #fbe9e7; color: #8f241f; font-size: 13px; }
+.tracking-message { display: grid; justify-items: center; gap: 8px; padding: 18px 0; color: var(--muted); text-align: center; }
+.tracking-message h1 { color: var(--ink); font-size: 22px; }
+.tracking-message p { margin: 0 0 8px; }
+.tracking-message svg { color: var(--brand); }
+
+/* Panel en movil: las cabeceras eran filas sin salto de linea. El titulo se
+   partia en una palabra por renglon y los botones se salian por la derecha. */
+@media (max-width: 760px) {
+  .admin-topbar { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+  .admin-title { flex: 1 1 100%; }
+  .admin-title h1 { font-size: 30px; }
+  .admin-top-actions { flex-wrap: wrap; }
+  .admin-card-header:has(.admin-top-actions) { flex-wrap: wrap; align-items: flex-start; }
+  .admin-card-header:has(.admin-top-actions) > div:first-child { flex: 1 1 100%; }
+  .admin-card-header .admin-top-actions { width: 100%; }
+  .admin-card-header .admin-top-actions > * { flex: 1 1 auto; justify-content: center; }
+}

@@ -639,3 +639,61 @@ drop trigger if exists pedidos_avisar on public.pedidos;
 create trigger pedidos_avisar
   after insert on public.pedidos
   for each row execute function public.avisar_pedido_nuevo();
+
+-- ===== Seguimiento de pedidos (migracion-seguimiento.sql) =====
+
+create or replace function public.seguimiento_pedido(p_id uuid)
+returns table (
+  numero_pedido text,
+  estado public.estado_pedido,
+  nombre text,
+  creado timestamptz,
+  fecha_entrega date,
+  horario_entrega text,
+  total numeric,
+  metodo_pago text,
+  moneda_pago text,
+  total_moneda numeric,
+  items jsonb,
+  historial jsonb,
+  negocio text,
+  whatsapp text,
+  simbolo_moneda text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    p.numero_pedido,
+    p.estado,
+    split_part(trim(p.nombre_cliente), ' ', 1),
+    p.created_at,
+    p.fecha_entrega,
+    p.horario_entrega,
+    p.total,
+    mp.nombre,
+    p.moneda_pago,
+    p.total_moneda,
+    coalesce((
+      select jsonb_agg(jsonb_build_object('nombre', i.nombre_producto, 'cantidad', i.cantidad)
+                       order by i.nombre_producto)
+      from public.pedido_items i where i.pedido_id = p.id
+    ), '[]'::jsonb),
+    coalesce((
+      select jsonb_agg(jsonb_build_object('estado', h.estado_nuevo, 'fecha', h.changed_at)
+                       order by h.changed_at)
+      from public.historial_estados h where h.pedido_id = p.id
+    ), '[]'::jsonb),
+    c.nombre_negocio,
+    c.whatsapp,
+    c.simbolo_moneda
+  from public.pedidos p
+  left join public.metodos_pago mp on mp.id = p.metodo_pago_id
+  cross join lateral (select * from public.configuracion_negocio limit 1) c
+  where p.id = p_id;
+$$;
+
+revoke all on function public.seguimiento_pedido(uuid) from public;
+grant execute on function public.seguimiento_pedido(uuid) to anon, authenticated;

@@ -153,3 +153,12 @@ test("ships an installable admin PWA and an Android APK workflow", async () => {
     access(new URL("../android/gradlew", import.meta.url)),
   ]);
 });
+
+test("renders the public order tracking page", async () => {
+  const response = await render("/pedido");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  // La pagina arranca buscando el pedido y no se deja indexar.
+  assert.match(html, /Buscando tu pedido/);
+  assert.match(html, /noindex/);
+});
