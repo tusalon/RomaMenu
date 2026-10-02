@@ -272,3 +272,36 @@ export function trackingProgress(estado: OrderStatus, historial: { estado: Order
 export function trackingUrl(origin: string, basePath: string, orderId: string) {
   return `${origin}${basePath}?id=${encodeURIComponent(orderId)}`;
 }
+
+/** Fecha de hoy en La Habana como "YYYY-MM-DD", sea cual sea la zona del telefono. */
+export function hoyCuba(fecha = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Havana", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(fecha);
+}
+
+/** Lunes de la semana de una fecha "YYYY-MM-DD". Se calcula en UTC para que ninguna zona la mueva. */
+export function lunesDe(fecha: string) {
+  const [y, m, d] = fecha.slice(0, 10).split("-").map(Number);
+  const dia = new Date(Date.UTC(y, m - 1, d));
+  dia.setUTCDate(dia.getUTCDate() - ((dia.getUTCDay() + 6) % 7));
+  return dia.toISOString().slice(0, 10);
+}
+
+/** Dia de servicio del pedido; los antiguos, sin fecha_entrega, cuentan por el dia en que se hicieron. */
+export function fechaServicio(order: { fecha_entrega?: string | null; created_at: string }) {
+  return order.fecha_entrega?.slice(0, 10) ?? hoyCuba(new Date(order.created_at));
+}
+
+/**
+ * Pedidos del fin de semana en curso y posteriores. El lunes la lista arranca
+ * en blanco; lo anterior queda en el historial. Se incluyen los de semanas
+ * futuras para que no se pierda un pedido hecho el domingo para el viernes.
+ */
+export function pedidosDeLaSemana<T extends { fecha_entrega?: string | null; created_at: string }>(
+  orders: T[],
+  hoy = hoyCuba(),
+) {
+  const lunes = lunesDe(hoy);
+  return orders.filter((order) => fechaServicio(order) >= lunes);
+}

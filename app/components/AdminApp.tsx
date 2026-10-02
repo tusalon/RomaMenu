@@ -9,6 +9,7 @@ import {
   Boxes,
   ChefHat,
   ClipboardList,
+  History,
   CreditCard,
   LayoutDashboard,
   LoaderCircle,
@@ -29,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { extrasFromOrder, formatCurrency, formatDate, formatDia, formatHora, lowStockProducts, orderStatusLabels, stockState, timeSlots } from "@/app/lib/format";
+import { extrasFromOrder, fechaServicio, formatCurrency, formatDate, formatDia, formatHora, lowStockProducts, orderStatusLabels, pedidosDeLaSemana, stockState, timeSlots } from "@/app/lib/format";
 import { appPath } from "@/app/lib/site-path";
 import {
   archiveProduct,
@@ -62,7 +63,7 @@ import type {
   PublicCatalog,
 } from "@/app/lib/types";
 
-type Section = "dashboard" | "orders" | "products" | "categories" | "zones" | "payments" | "settings";
+type Section = "dashboard" | "orders" | "history" | "products" | "categories" | "zones" | "payments" | "settings";
 type NotificationSupport = "checking" | "unsupported" | NotificationPermission;
 type OrderAlert = { order: Order; count: number };
 
@@ -146,6 +147,7 @@ async function showOrderNotification(order: Order, currencySymbol: string) {
 const navItems: Array<{ id: Section; label: string; icon: typeof LayoutDashboard }> = [
   { id: "dashboard", label: "Resumen", icon: LayoutDashboard },
   { id: "orders", label: "Pedidos", icon: ClipboardList },
+  { id: "history", label: "Historial", icon: History },
   { id: "products", label: "Productos", icon: ShoppingBag },
   { id: "categories", label: "Categorías", icon: Boxes },
   { id: "zones", label: "Zonas de entrega", icon: MapPinned },
@@ -155,7 +157,8 @@ const navItems: Array<{ id: Section; label: string; icon: typeof LayoutDashboard
 
 const sectionTitles: Record<Section, { eyebrow: string; title: string }> = {
   dashboard: { eyebrow: "Vista general", title: "Buenos días, Miguelón" },
-  orders: { eyebrow: "Operaciones", title: "Gestión de pedidos" },
+  orders: { eyebrow: "Este fin de semana", title: "Gestión de pedidos" },
+  history: { eyebrow: "Todos los fines de semana", title: "Historial de pedidos" },
   products: { eyebrow: "Catálogo", title: "Productos" },
   categories: { eyebrow: "Catálogo", title: "Categorías" },
   zones: { eyebrow: "Logística", title: "Zonas de entrega" },
@@ -363,6 +366,8 @@ export function AdminApp() {
   if (!catalog) return <div className="admin-loading">{error || "No fue posible abrir el panel."}</div>;
 
   const title = sectionTitles[section];
+  // Se recalcula en cada refresco (cada 30 s), asi que el lunes la lista se vacia sola.
+  const weekOrders = pedidosDeLaSemana(orders);
   return (
     <div className="admin-shell" style={{ "--brand": catalog.settings.color_primario, "--accent": catalog.settings.color_secundario } as React.CSSProperties}>
       <aside className={sidebarOpen ? "admin-sidebar open" : "admin-sidebar"}>
@@ -394,8 +399,9 @@ export function AdminApp() {
           </div>
         </header>
         {error && <div className="inline-notice">{error}</div>}
-        {section === "dashboard" && <Dashboard orders={orders} catalog={catalog} onOpenOrders={() => navigate("orders")} />}
-        {section === "orders" && <OrdersSection orders={orders} catalog={catalog} setOrders={setOrders} />}
+        {section === "dashboard" && <Dashboard orders={weekOrders} catalog={catalog} onOpenOrders={() => navigate("orders")} />}
+        {section === "orders" && <OrdersSection key="semana" orders={weekOrders} catalog={catalog} setOrders={setOrders} heading="Pedidos de este fin de semana" empty="Todavía no hay pedidos este fin de semana. Los anteriores están en Historial." />}
+        {section === "history" && <OrdersSection key="historial" orders={orders} catalog={catalog} setOrders={setOrders} heading="Todos los pedidos" empty="No hay pedidos con estos filtros." />}
         {section === "products" && <ProductsSection catalog={catalog} setCatalog={setCatalog} />}
         {section === "categories" && <CategoriesSection catalog={catalog} setCatalog={setCatalog} />}
         {section === "zones" && <ZonesSection catalog={catalog} setCatalog={setCatalog} />}
@@ -457,11 +463,11 @@ function Dashboard({ orders, catalog, onOpenOrders }: { orders: Order[]; catalog
   </>;
 }
 
-function OrdersTable({ orders, symbol, onSelect, onDelete }: { orders: Order[]; symbol: string; onSelect: (order: Order) => void; onDelete?: (order: Order) => void }) {
-  return <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Hora</th><th>Estado</th><th>Total</th><th /></tr></thead><tbody>{orders.map((order) => <tr key={order.id} className={order.estado === "nuevo" ? "is-new" : ""}><td className="order-number">#{order.numero_pedido}</td><td>{order.nombre_cliente}</td><td>{formatDate(order.created_at)}</td><td><span className={`status-badge ${order.estado}`}>{orderStatusLabels[order.estado]}</span></td><td><strong>{formatCurrency(order.total, symbol)}</strong></td><td><div className="table-row-actions"><button className="table-action" type="button" onClick={() => onSelect(order)}>Ver detalle</button>{onDelete && <button className="table-action danger" type="button" aria-label={`Eliminar pedido #${order.numero_pedido}`} onClick={() => onDelete(order)}><Trash2 size={12} /> Eliminar</button>}</div></td></tr>)}</tbody></table>{!orders.length && <div className="empty-admin">No hay pedidos con estos filtros.</div>}</div>;
+function OrdersTable({ orders, symbol, onSelect, onDelete, empty = "No hay pedidos con estos filtros." }: { orders: Order[]; symbol: string; empty?: string; onSelect: (order: Order) => void; onDelete?: (order: Order) => void }) {
+  return <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Hora</th><th>Estado</th><th>Total</th><th /></tr></thead><tbody>{orders.map((order) => <tr key={order.id} className={order.estado === "nuevo" ? "is-new" : ""}><td className="order-number">#{order.numero_pedido}</td><td>{order.nombre_cliente}</td><td>{formatDate(order.created_at)}</td><td><span className={`status-badge ${order.estado}`}>{orderStatusLabels[order.estado]}</span></td><td><strong>{formatCurrency(order.total, symbol)}</strong></td><td><div className="table-row-actions"><button className="table-action" type="button" onClick={() => onSelect(order)}>Ver detalle</button>{onDelete && <button className="table-action danger" type="button" aria-label={`Eliminar pedido #${order.numero_pedido}`} onClick={() => onDelete(order)}><Trash2 size={12} /> Eliminar</button>}</div></td></tr>)}</tbody></table>{!orders.length && <div className="empty-admin">{empty}</div>}</div>;
 }
 
-function OrdersSection({ orders, catalog, setOrders }: { orders: Order[]; catalog: PublicCatalog; setOrders: React.Dispatch<React.SetStateAction<Order[]>> }) {
+function OrdersSection({ orders, catalog, setOrders, heading, empty }: { heading: string; empty: string; orders: Order[]; catalog: PublicCatalog; setOrders: React.Dispatch<React.SetStateAction<Order[]>> }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [date, setDate] = useState("");
@@ -472,7 +478,8 @@ function OrdersSection({ orders, catalog, setOrders }: { orders: Order[]; catalo
     const needle = search.toLocaleLowerCase("es");
     const matchesSearch = !needle || order.numero_pedido.includes(needle) || order.nombre_cliente.toLocaleLowerCase("es").includes(needle) || order.telefono.includes(needle);
     const matchesStatus = status === "all" || order.estado === status;
-    const matchesDate = !date || order.created_at.startsWith(date);
+    // Por dia de servicio: "el viernes 25", no el dia en que el cliente pulso el boton.
+    const matchesDate = !date || fechaServicio(order) === date;
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -496,7 +503,7 @@ function OrdersSection({ orders, catalog, setOrders }: { orders: Order[]; catalo
 
   if (selected) return <section className="admin-card"><div className="admin-card-header"><div><button className="back-button" type="button" onClick={() => setSelected(null)}>← Volver a pedidos</button><h2>Pedido #{selected.numero_pedido}</h2><p>Recibido {formatDate(selected.created_at)}</p></div><div className="admin-top-actions"><button className="button button-danger button-small" type="button" onClick={() => removeOrder(selected)}><Trash2 size={15} /> Eliminar pedido</button><button className="button button-secondary button-small" type="button" onClick={() => window.print()}><Printer size={15} /> Imprimir</button><a className="button button-primary button-small" href={`https://wa.me/${selected.telefono.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Contactar</a></div></div>{actionError && <div className="inline-notice">{actionError}</div>}<div className="order-detail"><div className="order-detail-grid">{selected.fecha_entrega && <div className="detail-block"><small>Para el</small><strong>{formatDia(selected.fecha_entrega)}</strong><span>{selected.horario_entrega ? `Hora pedida: ${formatHora(selected.horario_entrega)}` : "Lo antes posible"}</span></div>}<div className="detail-block"><small>Cliente</small><strong>{selected.nombre_cliente}</strong><span>{selected.telefono}</span></div><div className="detail-block"><small>Entrega</small><strong>{selected.direccion}</strong><span>{catalog.zones.find((zone) => zone.id === selected.zona_id)?.nombre} · {selected.referencia || "Sin referencia"}</span></div></div><div className="order-products">{selected.items.map((item) => <div key={`${item.producto_id}-${item.nombre_producto}`}><span>{item.cantidad} × {item.nombre_producto}</span><strong>{formatCurrency(item.subtotal, catalog.settings.simbolo_moneda)}</strong></div>)}</div>{extrasFromOrder(selected.items).map((line) => <div className="order-products" key={`${line.nombre}-${line.unitario}`}><div><span>{line.cantidad} × {formatCurrency(line.unitario, catalog.settings.simbolo_moneda)} en {line.nombre}</span><strong>{formatCurrency(line.total, catalog.settings.simbolo_moneda)}</strong></div></div>)}<div className="order-total"><span>Total</span><strong>{formatCurrency(selected.total, catalog.settings.simbolo_moneda)}</strong></div>{selected.total_moneda ? <div className="order-total order-total-moneda"><span>A cobrar por {catalog.paymentMethods.find((item) => item.id === selected.metodo_pago_id)?.nombre ?? "el método elegido"}<small>{Number(selected.total).toLocaleString("es-CU")} {catalog.settings.moneda || "CUP"} ÷ {Number(selected.tasa_cambio).toLocaleString("es-CU")}</small></span><strong>{Number(selected.total_moneda).toLocaleString("es-CU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {selected.moneda_pago || "USD"}</strong></div> : null}<div className="admin-form order-controls"><label className="field"><span>Estado del pedido</span><select value={selected.estado} onChange={(event) => changeOrder(selected, { estado: event.target.value as OrderStatus })}>{Object.entries(orderStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="field"><span>Notas internas</span><textarea rows={3} value={notes || selected.notas_internas || ""} onChange={(event) => setNotes(event.target.value)} placeholder="Solo visible para administración" /></label><div className="form-actions"><button className="button button-secondary button-small" type="button" onClick={() => changeOrder(selected, { notas_internas: notes })}>Guardar notas</button><button className="button button-danger button-small" type="button" onClick={() => changeOrder(selected, { estado: "cancelado" })}>Cancelar pedido</button><button className="button button-primary button-small" type="button" onClick={() => changeOrder(selected, { estado: "entregado" })}>Marcar entregado</button></div></div></div></section>;
 
-  return <><div className="admin-toolbar"><label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por número, cliente o teléfono" /></label><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">Todos los estados</option>{Object.entries(orderStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div>{actionError && <div className="inline-notice">{actionError}</div>}<section className="admin-card"><div className="admin-card-header"><div><h2>Todos los pedidos</h2><p>{filtered.length} resultados</p></div></div><OrdersTable orders={filtered} symbol={catalog.settings.simbolo_moneda} onDelete={removeOrder} onSelect={(order) => { setSelected(order); setNotes(order.notas_internas || ""); setActionError(""); }} /></section></>;
+  return <><div className="admin-toolbar"><label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por número, cliente o teléfono" /></label><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">Todos los estados</option>{Object.entries(orderStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div>{actionError && <div className="inline-notice">{actionError}</div>}<section className="admin-card"><div className="admin-card-header"><div><h2>{heading}</h2><p>{filtered.length} {filtered.length === 1 ? "pedido" : "pedidos"}</p></div></div><OrdersTable orders={filtered} empty={empty} symbol={catalog.settings.simbolo_moneda} onDelete={removeOrder} onSelect={(order) => { setSelected(order); setNotes(order.notas_internas || ""); setActionError(""); }} /></section></>;
 }
 
 function ProductsSection({ catalog, setCatalog }: { catalog: PublicCatalog; setCatalog: React.Dispatch<React.SetStateAction<PublicCatalog | null>> }) {
