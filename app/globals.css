@@ -556,3 +556,4 @@ img { display: block; max-width: 100%; }
   .admin-card-header .admin-top-actions { width: 100%; }
   .admin-card-header .admin-top-actions > * { flex: 1 1 auto; justify-content: center; }
 }
+.order-number .order-day { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; font-weight: 500; text-transform: capitalize; }

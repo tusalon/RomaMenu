@@ -131,7 +131,8 @@ create table if not exists public.horarios_especiales (
 
 create table if not exists public.pedidos (
   id uuid primary key default gen_random_uuid(),
-  numero_pedido text not null unique,
+  numero_pedido text not null,
+  semana date not null,
   nombre_cliente text not null,
   telefono text not null,
   direccion text not null,
@@ -152,8 +153,34 @@ create table if not exists public.pedidos (
   estado public.estado_pedido not null default 'nuevo',
   origen text not null default 'web',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (semana, numero_pedido)
 );
+
+-- Un contador por semana. El numero de pedido vuelve a 0001 cada semana.
+create table if not exists public.contadores_pedido (
+  semana date primary key,
+  ultimo integer not null default 0 check (ultimo >= 0)
+);
+alter table public.contadores_pedido enable row level security;
+revoke all on public.contadores_pedido from anon, authenticated;
+
+-- Red de seguridad: una insercion sin semana la calcula sola.
+create or replace function public.pedidos_fijar_semana()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.semana is null then
+    new.semana := date_trunc('week', coalesce(new.fecha_entrega, (coalesce(new.created_at, now()) at time zone 'America/Havana')::date)::timestamp)::date;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists pedidos_fijar_semana on public.pedidos;
+create trigger pedidos_fijar_semana before insert on public.pedidos
+  for each row execute function public.pedidos_fijar_semana();
 
 create table if not exists public.pedido_items (
   id uuid primary key default gen_random_uuid(),
@@ -374,6 +401,8 @@ as $$
 declare
   v_pedido_id uuid := gen_random_uuid();
   v_numero text;
+  v_semana date;
+  v_ultimo integer;
   v_subtotal numeric(12,2) := 0;
   v_extras numeric(12,2) := 0;
   v_entrega numeric(12,2);
@@ -473,14 +502,22 @@ begin
     v_total_moneda := null;
   end if;
 
-  v_numero := lpad(nextval('public.pedido_numero_seq')::text, 4, '0');
+  -- La semana es el lunes del dia de entrega, la misma regla que usa el panel.
+  v_semana := date_trunc('week', coalesce(v_fecha_entrega, (now() at time zone 'America/Havana')::date)::timestamp)::date;
+  -- El upsert bloquea la fila de la semana hasta el final del pedido: dos pedidos
+  -- a la vez no pueden recibir el mismo numero, y si este falla, el contador
+  -- se deshace con el resto y no queda un hueco.
+  insert into public.contadores_pedido as c (semana, ultimo) values (v_semana, 1)
+  on conflict (semana) do update set ultimo = c.ultimo + 1
+  returning c.ultimo into v_ultimo;
+  v_numero := lpad(v_ultimo::text, 4, '0');
   insert into public.pedidos (
-    id, numero_pedido, nombre_cliente, telefono, direccion, zona_id,
+    id, numero_pedido, semana, nombre_cliente, telefono, direccion, zona_id,
     referencia, metodo_pago_id, horario_entrega, subtotal, costo_entrega,
     costo_extras, total, moneda_pago, tasa_cambio, total_moneda, fecha_entrega,
     observaciones, estado, origen
   ) values (
-    v_pedido_id, v_numero, trim(p_cliente->>'nombre_cliente'), trim(p_cliente->>'telefono'),
+    v_pedido_id, v_numero, v_semana, trim(p_cliente->>'nombre_cliente'), trim(p_cliente->>'telefono'),
     trim(p_cliente->>'direccion'), v_zona_id, trim(coalesce(p_cliente->>'referencia', '')),
     v_metodo_id, trim(coalesce(p_cliente->>'horario_entrega', '')), v_subtotal,
     v_entrega, v_extras, v_total, v_moneda, v_tasa, v_total_moneda, v_fecha_entrega,
