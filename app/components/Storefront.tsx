@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { demoCatalog } from "@/app/lib/demo-data";
 import { describeWindow, stockState } from "@/app/lib/format";
+import { photoUrl } from "@/app/lib/images";
 import { fetchOrderWindow, fetchPublicCatalog, isSupabaseConfigured } from "@/app/lib/repository";
 import type { OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 import { useCart } from "@/app/lib/use-cart";
@@ -135,12 +136,12 @@ export function Storefront() {
             <div className="mini-products">
               {recommended.map((product) => canOrder ? (
                 <button key={product.id} type="button" onClick={() => addToCart(product)}>
-                  <img src={product.imagen_url} alt="" />
+                  <img src={photoUrl(product.imagen_url, 160)} alt="" />
                   <span><strong>{product.nombre}</strong><small>Añadir rápido <ArrowRight size={13} /></small></span>
                 </button>
               ) : (
                 <a key={product.id} href="#menu">
-                  <img src={product.imagen_url} alt="" />
+                  <img src={photoUrl(product.imagen_url, 160)} alt="" />
                   <span><strong>{product.nombre}</strong><small>Ver en el menú <ArrowRight size={13} /></small></span>
                 </a>
               ))}

@@ -2,6 +2,7 @@
 
 import { ShoppingBag } from "lucide-react";
 import { formatCurrency, stockState } from "@/app/lib/format";
+import { photoSrcSet, photoUrl } from "@/app/lib/images";
 import type { Category, Product } from "@/app/lib/types";
 
 type ProductCardProps = {
@@ -24,7 +25,13 @@ export function ProductCard({ product, category, symbol, inCart = 0, onAdd }: Pr
   return (
     <article className={stock.agotado ? "product-card sold-out" : "product-card"}>
       <div className="product-image">
-        <img src={product.imagen_url} alt={product.nombre} loading="lazy" />
+        <img
+          src={photoUrl(product.imagen_url, 640)}
+          srcSet={photoSrcSet(product.imagen_url, [400, 640, 800, 960])}
+          sizes="(max-width: 700px) 92vw, (max-width: 1000px) 46vw, 360px"
+          alt={product.nombre}
+          loading="lazy"
+        />
         {badge && <span className={`product-badge ${badge.toLowerCase()}`}>{badge}</span>}
         {stock.agotado && <span className="sold-out-label">Agotado por hoy</span>}
       </div>

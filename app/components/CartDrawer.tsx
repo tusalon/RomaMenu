@@ -27,6 +27,7 @@ import {
   trackingUrl,
 } from "@/app/lib/format";
 import { buildWhatsAppMessage, createOrder } from "@/app/lib/repository";
+import { photoUrl } from "@/app/lib/images";
 import { appPath } from "@/app/lib/site-path";
 import type { CartItem, CheckoutData, Order, OrderWindow, Product, PublicCatalog } from "@/app/lib/types";
 
@@ -218,7 +219,7 @@ export function CartDrawer({
                 </div>
               ) : items.map(({ product, quantity }) => (
                 <article className="cart-line" key={product.id}>
-                  <img src={product.imagen_url} alt="" />
+                  <img src={photoUrl(product.imagen_url, 160)} alt="" />
                   <div className="cart-line-info">
                     <h3>{product.nombre}</h3>
                     <strong>{formatCurrency(product.precio * quantity, symbol)}</strong>

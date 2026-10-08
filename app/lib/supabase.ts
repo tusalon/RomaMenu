@@ -18,6 +18,12 @@ export function isSupabaseConfigured() {
 export function getSupabase(): SupabaseClient | null {
   if (browserClient !== undefined) return browserClient;
 
+  // Sin configurar no hay cliente: el modo demostracion del README depende de esto.
+  if (!isSupabaseConfigured()) {
+    browserClient = null;
+    return null;
+  }
+
   browserClient = createClient(supabaseUrl, supabasePublishableKey);
   return browserClient;
 }
