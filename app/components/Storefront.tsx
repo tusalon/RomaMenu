@@ -131,7 +131,7 @@ export function Storefront() {
           <div className="shell">
             <div className="strip-heading">
               <span><Sparkles size={17} /></span>
-              <div><small>Favoritos de nuestros clientes</small><strong>Lo más pedido esta semana</strong></div>
+              <div><small>Elegidos por la cocina</small><strong>Recomendados de la casa</strong></div>
             </div>
             <div className="mini-products">
               {recommended.map((product) => canOrder ? (

@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T16:53:00+00:00",
+  "title": "Design System: La Cocina de Miguelón",
+  "extensions": {
+    "colorMeta": {
+      "brick-red": {
+        "role": "primary",
+        "displayName": "Ladrillo",
+        "canonical": "#8f241f",
+        "tonalRamp": [
+          "#200000",
+          "#4d0002",
+          "#7d0e0e",
+          "#a33830",
+          "#ca5b50",
+          "#f27e72",
+          "#fdb4aa",
+          "#fee9e6"
+        ]
+      },
+      "brick-deep": {
+        "role": "primary",
+        "displayName": "Ladrillo Hondo",
+        "canonical": "#681713",
+        "tonalRamp": [
+          "#200000",
+          "#4d0102",
+          "#73221c",
+          "#98443b",
+          "#bd655b",
+          "#e4887d",
+          "#fcb4aa",
+          "#fee9e6"
+        ]
+      },
+      "orange": {
+        "role": "secondary",
+        "displayName": "Brasa",
+        "canonical": "#ee7d32",
+        "tonalRamp": [
+          "#1a0400",
+          "#3e1901",
+          "#692f02",
+          "#964810",
+          "#c76217",
+          "#f38238",
+          "#fdb78f",
+          "#feeadf"
+        ]
+      },
+      "orange-text": {
+        "role": "secondary",
+        "displayName": "Brasa de Texto",
+        "canonical": "#b84e14",
+        "tonalRamp": [
+          "#1b0300",
+          "#431400",
+          "#6e2a05",
+          "#9f3f04",
+          "#ca5e29",
+          "#f2824f",
+          "#fcb699",
+          "#ffe9e0"
+        ]
+      },
+      "cream-paper": {
+        "role": "neutral",
+        "displayName": "Papel Crema",
+        "canonical": "#fbf5ea",
+        "tonalRamp": [
+          "#0e0b06",
+          "#29241c",
+          "#464139",
+          "#666157",
+          "#878278",
+          "#aaa49a",
+          "#cec8be",
+          "#f4eee3"
+        ]
+      },
+      "warm-white": {
+        "role": "neutral",
+        "displayName": "Blanco Cálido",
+        "canonical": "#fffdf8",
+        "tonalRamp": [
+          "#0c0b09",
+          "#262521",
+          "#43423e",
+          "#63615d",
+          "#84827e",
+          "#a7a5a0",
+          "#cbc9c4",
+          "#f0eee9"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Blanco",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#27201d",
+        "tonalRamp": [
+          "#0f0a08",
+          "#2a2320",
+          "#48403d",
+          "#685f5c",
+          "#89807c",
+          "#aca39f",
+          "#d0c7c3",
+          "#f6ece8"
+        ]
+      },
+      "clay-muted": {
+        "role": "neutral",
+        "displayName": "Barro",
+        "canonical": "#716762",
+        "tonalRamp": [
+          "#0f0a07",
+          "#2b231f",
+          "#49403b",
+          "#695f5a",
+          "#8a807b",
+          "#ada29d",
+          "#d2c6c1",
+          "#f7ece6"
+        ]
+      },
+      "line-sand": {
+        "role": "neutral",
+        "displayName": "Arena",
+        "canonical": "#e8ddcf",
+        "tonalRamp": [
+          "#100a04",
+          "#2c2419",
+          "#494035",
+          "#696053",
+          "#8b8174",
+          "#aea396",
+          "#d2c7ba",
+          "#f8edde"
+        ]
+      },
+      "leaf-green": {
+        "role": "tertiary",
+        "displayName": "Hoja",
+        "canonical": "#417548",
+        "tonalRamp": [
+          "#001001",
+          "#002f0b",
+          "#1a4e24",
+          "#3b6f42",
+          "#5c9163",
+          "#7fb584",
+          "#a2daa7",
+          "#caffce"
+        ]
+      },
+      "soot": {
+        "role": "neutral",
+        "displayName": "Tizne",
+        "canonical": "#151210",
+        "tonalRamp": [
+          "#0d0b09",
+          "#282422",
+          "#45413f",
+          "#64605e",
+          "#85817f",
+          "#a8a4a1",
+          "#ccc8c5",
+          "#f2edea"
+        ]
+      },
+      "peach-arch": {
+        "role": "neutral",
+        "displayName": "Melocotón",
+        "canonical": "#f3c9a8",
+        "tonalRamp": [
+          "#170600",
+          "#3a1d01",
+          "#5b391b",
+          "#7d583a",
+          "#a0795b",
+          "#c49c7c",
+          "#eac09f",
+          "#feeadb"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "El titular de portada."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de sección."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Nombre del plato."
+      },
+      "price": {
+        "displayName": "Price",
+        "purpose": "Precio, en ladrillo y Georgia."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descripciones y texto corrido."
+      },
+      "ui": {
+        "displayName": "UI",
+        "purpose": "Botones, etiquetas de campo y celdas."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Etiquetas en mayúsculas: el mínimo absoluto de 11 px."
+      },
+      "field": {
+        "displayName": "Field",
+        "purpose": "Todo campo de texto: 16 px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 10px 35px rgba(77, 46, 29, .055)",
+        "purpose": "Tarjeta de plato en reposo."
+      },
+      {
+        "name": "card-raised",
+        "value": "0 22px 45px rgba(77, 46, 29, .11)",
+        "purpose": "Tarjeta de plato al pasar el ratón."
+      },
+      {
+        "name": "ambient",
+        "value": "0 20px 60px rgba(73, 42, 29, 0.1)",
+        "purpose": "Cartel y tarjetas de confirmación y seguimiento (--shadow)."
+      },
+      {
+        "name": "action-glow",
+        "value": "0 12px 28px color-mix(in srgb, var(--brand) 22%, transparent)",
+        "purpose": "Botón principal, teñido de su propio color."
+      },
+      {
+        "name": "drawer",
+        "value": "-20px 0 60px rgba(30, 19, 15, .17)",
+        "purpose": "El carrito deslizante."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent)",
+        "purpose": "Campos enfocados."
+      }
+    ],
+    "motion": [
+      {
+        "name": "drawer-in",
+        "value": ".25s ease-out, translateX(100%) a 0",
+        "purpose": "El carrito entra desde la derecha. Con movimiento reducido: aparece con un fade de .15s."
+      },
+      {
+        "name": "hover-lift",
+        "value": ".18s a .22s ease, translateY(-2px a -5px)",
+        "purpose": "Botones y tarjetas suben al pasar el ratón. Con movimiento reducido: no se mueven."
+      },
+      {
+        "name": "spinner",
+        "value": "rotate .9s linear infinite",
+        "purpose": "El aviso de que algo carga. Con movimiento reducido: 2,4 s, sin detenerse."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.25s linear infinite",
+        "purpose": "Esqueleto de tarjeta mientras carga el menú. Con movimiento reducido: sin brillo."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "lg",
+        "value": "1000px"
+      },
+      {
+        "name": "md",
+        "value": "760px"
+      },
+      {
+        "name": "sm",
+        "value": "500px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La acción principal de cada pantalla: Ver el menú, Continuar, Confirmar.",
+      "html": "<button class=\"ds-btn-primary\">Ver el menú</button>",
+      "css": ".ds-btn-primary{min-height:49px;padding:0 20px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid transparent;border-radius:14px;background:var(--brand,#8f241f);color:#fff;font:800 14px/1.2 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:0 12px 28px color-mix(in srgb,var(--brand,#8f241f) 22%,transparent);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}.ds-btn-primary:hover{background:var(--brand-deep,#681713);transform:translateY(-2px)}.ds-btn-primary:focus-visible{outline:3px solid #b84e14;outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "La alternativa tranquila junto al botón principal: Pedir ahora, Volver al catálogo.",
+      "html": "<button class=\"ds-btn-secondary\">Pedir ahora</button>",
+      "css": ".ds-btn-secondary{min-height:49px;padding:0 20px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--line,#e8ddcf);border-radius:14px;background:#fff;color:var(--ink,#27201d);font:800 14px/1.2 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;transition:transform .18s ease}.ds-btn-secondary:hover{transform:translateY(-2px)}.ds-btn-secondary:focus-visible{outline:3px solid #b84e14;outline-offset:2px}"
+    },
+    {
+      "name": "Category Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filtro de categoría del menú, en reposo.",
+      "html": "<button class=\"ds-chip\">Platos principales</button>",
+      "css": ".ds-chip{min-height:44px;padding:0 16px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line,#e8ddcf);border-radius:12px;background:rgba(255,255,255,.62);color:#554c47;font:750 12px/1.2 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer}.ds-chip:hover{border-color:var(--brand,#8f241f)}.ds-chip:focus-visible{outline:3px solid #b84e14;outline-offset:2px}"
+    },
+    {
+      "name": "Category Chip (active)",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "La categoría elegida: relleno de ladrillo con su sombra teñida.",
+      "html": "<button class=\"ds-chip-active\">Todos</button>",
+      "css": ".ds-chip-active{min-height:44px;padding:0 16px;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--brand,#8f241f);border-radius:12px;background:var(--brand,#8f241f);color:#fff;font:750 12px/1.2 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:0 8px 20px color-mix(in srgb,var(--brand,#8f241f) 18%,transparent)}.ds-chip-active:focus-visible{outline:3px solid #b84e14;outline-offset:2px}"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "product-card",
+      "description": "La carta de un plato: foto, categoría, nombre en Georgia, precio en ladrillo y Añadir.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-photo\"><span class=\"ds-card-badge\">Recomendado</span></div><div class=\"ds-card-body\"><small class=\"ds-card-cat\">Platos principales</small><h3 class=\"ds-card-title\">Ropa vieja</h3><p class=\"ds-card-desc\">Carne deshebrada en salsa criolla de tomate, pimientos y vino seco.</p><div class=\"ds-card-foot\"><strong class=\"ds-card-price\">$3,500</strong><button class=\"ds-card-add\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z\"/><path d=\"M3 6h18\"/><path d=\"M16 10a4 4 0 0 1-8 0\"/></svg><span>Añadir</span></button></div></div></article>",
+      "css": ".ds-card{width:300px;overflow:hidden;border:1px solid var(--line,#e8ddcf);border-radius:23px;background:#fff;box-shadow:0 10px 35px rgba(77,46,29,.055);transition:transform .22s ease,box-shadow .22s ease;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}.ds-card:hover{transform:translateY(-5px);box-shadow:0 22px 45px rgba(77,46,29,.11)}.ds-card-photo{position:relative;aspect-ratio:1.55/1;background:linear-gradient(135deg,#d9a46a,#8f241f)}.ds-card-badge{position:absolute;top:13px;left:13px;padding:6px 9px;border-radius:8px;background:#b84e14;color:#fff;font-size:11px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;box-shadow:0 5px 13px rgba(35,20,15,.15)}.ds-card-body{padding:20px}.ds-card-cat{color:#b84e14;font-size:11px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}.ds-card-title{margin:7px 0 8px;font:600 21px/1.2 Georgia,serif;color:#27201d}.ds-card-desc{margin:0 0 16px;color:#716762;font-size:14px;line-height:1.6}.ds-card-foot{display:flex;align-items:center;justify-content:space-between}.ds-card-price{font:700 22px/1 Georgia,serif;color:#8f241f}.ds-card-add{min-height:44px;padding:0 13px;display:inline-flex;align-items:center;gap:7px;border:0;border-radius:10px;background:#8f241f;color:#fff;font:800 13px/1 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer}.ds-card-add:focus-visible{outline:3px solid #b84e14;outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo del formulario de pedido: etiqueta siempre visible y 16 px para que el iPhone no haga zoom.",
+      "html": "<label class=\"ds-field\"><span>Teléfono *</span><input placeholder=\"55555555\" inputmode=\"tel\"></label>",
+      "css": ".ds-field{display:grid;gap:7px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}.ds-field span{font-size:13px;font-weight:800;color:#27201d}.ds-field input{height:43px;padding:0 11px;border:1px solid var(--line,#e8ddcf);border-radius:11px;background:#fff;color:#27201d;font-size:16px;outline:0}.ds-field input::placeholder{color:#8c817b}.ds-field input:focus{border-color:var(--accent,#ee7d32);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#ee7d32) 22%,transparent)}"
+    },
+    {
+      "name": "Open / Closed Pill",
+      "kind": "chip",
+      "refersTo": "banner-closed",
+      "description": "El indicador de la cabecera. Cerrado, en rosado pálido con ladrillo.",
+      "html": "<span class=\"ds-pill\"><i></i>Cerrado</span>",
+      "css": ".ds-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid #f1cfcb;border-radius:99px;background:#fff1ef;color:var(--brand,#8f241f);font:750 12px/1 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}.ds-pill i{width:8px;height:8px;border-radius:50%;background:var(--brand,#8f241f);box-shadow:0 0 0 3px #f5d9d5}"
+    },
+    {
+      "name": "Order Tracking Steps",
+      "kind": "custom",
+      "refersTo": "product-card",
+      "description": "El seguimiento del cliente: cumplidos en verde, el actual en ladrillo con halo, pendientes vacíos.",
+      "html": "<ol class=\"ds-steps\"><li class=\"done\"><b></b>Recibido</li><li class=\"current\"><b></b>En la cocina</li><li><b></b>Entregado</li></ol>",
+      "css": ".ds-steps{margin:0;padding:0;list-style:none;display:grid;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:14px}.ds-steps li{position:relative;display:flex;align-items:center;gap:12px;min-height:44px;color:#716762}.ds-steps li:not(:last-child)::after{content:'';position:absolute;left:12px;top:32px;bottom:-12px;width:2px;background:#e8ddcf}.ds-steps li.done:not(:last-child)::after{background:#417548}.ds-steps b{position:relative;z-index:1;width:26px;height:26px;border:2px solid #e8ddcf;border-radius:50%;background:#fff}.ds-steps .done b{border-color:#417548;background:#417548}.ds-steps .current b{border-color:#8f241f;background:#8f241f;box-shadow:0 0 0 5px rgba(143,36,31,.12)}.ds-steps .done,.ds-steps .current{color:#27201d}.ds-steps .current{font-weight:700}"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Menú de la Casa",
+    "overview": "La tienda se comporta como el menú que te entregan en una casa donde se cocina de verdad: papel crema, tinta ladrillo, títulos con letra de imprenta (Georgia) y la foto del plato primero. No hay nada pulido de más. El cartel de Miguelón —negro, naranja y amarillo— es la pieza que manda y el resto del sistema se pone a su servicio sin competir con él.\n\nSe usa casi siempre desde un móvil, en Cuba, con prisa y a veces con poca luz y poca conexión. Por eso la densidad es amable (letra de 11 px como mínimo, botones de 44 px, campos de 16 px) y no descarga nada que no haga falta: cero fuentes web, fotos pedidas al ancho que toca. La calidez sale del color y de la forma redondeada, no del adorno.\n\nSe rechaza el aspecto de plantilla de pedidos genérica: cuadrículas de iconos idénticos, degradados de moda, cristal translúcido y el naranja pálido como color de texto. Lo que se ve es de esta cocina o no está.",
+    "keyCharacteristics": [
+      "Papel crema con tinta ladrillo; el naranja solo acentúa, nunca escribe texto pequeño.",
+      "Georgia para todo lo que se lee como carta (nombres, precios, titulares); sans de sistema para todo lo que se toca.",
+      "Esquinas generosas (14–24 px) y sombras cálidas teñidas de marrón.",
+      "Todo lo que se pulsa mide al menos 44 px; todo campo, 16 px.",
+      "Tienda cerrada = escaparate: se ve el menú entero, no se puede pedir nada."
+    ],
+    "rules": [
+      {
+        "name": "The Readable Orange Rule",
+        "body": "El naranja #ee7d32 decora; el que escribe es #b84e14. Cualquier texto menor de 18 px sobre claro usa el segundo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Derived Deep Rule",
+        "body": "Los fondos oscuros de la tienda salen del ladrillo de marca por mezcla, no de un hex fijo; si el admin cambia el color, todo cambia con él.",
+        "section": "colors"
+      },
+      {
+        "name": "The Muted Is Not Faded Rule",
+        "body": "Lo secundario se atenúa con Barro (#716762), nunca con opacidad: la opacidad se lleva consigo el contraste del texto y de las etiquetas que lleve dentro.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sixteen Rule",
+        "body": "Un campo mide 16 px o Safari de iPhone amplía la página al tocarlo, justo en el formulario donde el cliente escribe su dirección.",
+        "section": "typography"
+      },
+      {
+        "name": "The Eleven Floor Rule",
+        "body": "Nada se escribe por debajo de 11 px, y solo las etiquetas en mayúsculas llegan a ese tamaño; el texto normal empieza en 12.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Download Rule",
+        "body": "No se añaden fuentes web. Con conexiones lentas, una fuente es el primer lujo que se cae.",
+        "section": "typography"
+      },
+      {
+        "name": "The Warm Shadow Rule",
+        "body": "Una sombra siempre lleva desplazamiento, desenfoque y un tinte marrón o del color del propio elemento. Nunca un halo sin desplazamiento ni un bloque duro.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Rise On Response Rule",
+        "body": "Una tarjeta solo sube cuando se le responde (hover). En reposo no flota.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Arch Rule",
+        "body": "El cartel va en arco, nunca en círculo ni en una mancha orgánica: cualquier máscara redonda de verdad se come la franja del teléfono.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Whole Thumb Rule",
+        "body": "Todo lo que se pulsa mide 44 × 44 px como mínimo (con puntero táctil, también en el panel).",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** usar Georgia para nombres de plato, precios y titulares, y la sans de sistema para todo lo que se pulsa.",
+      "**Do** usar #b84e14 para cualquier texto naranja menor de 18 px sobre fondo claro.",
+      "**Do** dar 44 × 44 px a todo control táctil y 16 px a todo campo de texto.",
+      "**Do** atenuar con Barro (#716762) y apagar lo agotado con gris en la foto, no con opacidad.",
+      "**Do** teñir las sombras de marrón cálido y darles siempre desplazamiento y desenfoque.",
+      "**Do** pedir cada foto al ancho al que se va a pintar (`srcset`), no al original de 1400 px.",
+      "**Do** dejar visible el menú completo cuando la tienda está cerrada y esconder todo lo que sirva para pedir."
+    ],
+    "donts": [
+      "**Don't** escribir texto por debajo de 11 px, ni de 12 px si no es una etiqueta en mayúsculas.",
+      "**Don't** usar #ee7d32 como color de texto pequeño: da 2,76:1.",
+      "**Don't** añadir fuentes web: la pila de sistema es una decisión de rendimiento, no un descuido.",
+      "**Don't** enmarcar el cartel en un círculo o una mancha: tapa el teléfono de WhatsApp.",
+      "**Don't** aplicar `opacity` a una tarjeta agotada: lava la etiqueta \"Agotado\" y el contraste del texto.",
+      "**Don't** llamar \"lo más pedido\" a lo que solo está marcado como recomendado.",
+      "**Don't** hardcodear el rojo oscuro: se deriva del color de marca con `color-mix`.",
+      "**Don't** usar degradados sobre texto, cristal translúcido de adorno ni cuadrículas de tarjetas idénticas con icono y rótulo."
+    ]
+  }
+}

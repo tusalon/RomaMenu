@@ -37,6 +37,14 @@ button { color: inherit; }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 
+/* Foco con teclado, seleccion de texto, cursor y casillas: con la paleta, no la del navegador.
+   :where() no suma especificidad, asi que los campos conservan su propio foco (borde + aro). */
+:where(a, button, summary, [role="button"]):focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+::selection { background: #f3c9a8; color: var(--ink); }
+input, textarea { caret-color: var(--brand); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
+.search-box:focus-within, .sort-select:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
 .storefront { --brand-deep: color-mix(in srgb, var(--brand) 80%, #260000); min-height: 100vh; overflow-x: clip; }
 .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
 .closed-banner { background: var(--brand-deep); color: white; text-align: center; padding: 9px 20px; font-size: 13px; }
@@ -49,8 +57,8 @@ img { display: block; max-width: 100%; }
 .brand strong { font-family: Georgia, serif; font-size: 17px; }
 .brand small { margin-top: 4px; color: var(--brand); font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .main-nav { display: flex; align-items: center; gap: 30px; margin-left: auto; }
-.main-nav a { position: relative; color: #4d4541; font-size: 14px; font-weight: 650; }
-.main-nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -8px; height: 2px; border-radius: 99px; background: var(--accent); transition: right .2s ease; }
+.main-nav a { position: relative; display: inline-flex; align-items: center; min-height: 44px; color: #4d4541; font-size: 14px; font-weight: 650; }
+.main-nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: 4px; height: 2px; border-radius: 99px; background: var(--accent); transition: right .2s ease; }
 .main-nav a:hover::after { right: 0; }
 .header-actions { display: flex; align-items: center; gap: 9px; }
 .open-pill { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid #ccddc9; border-radius: 99px; background: #f2f8ee; color: #315f36; font-size: 12px; font-weight: 750; }
@@ -453,9 +461,6 @@ img { display: block; max-width: 100%; }
   .pwa-install-button { display: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-}
 
 @media (max-width: 500px) {
   .hero-actions .button { flex: 1; padding-inline: 12px; }
@@ -475,8 +480,16 @@ img { display: block; max-width: 100%; }
   .admin-form .span-2, .admin-form .field.full { grid-column: auto; }
 }
 
+/* Movimiento reducido. Antes un bloque apagaba TODAS las animaciones a 0,01 ms: el
+   carrito aparecia de golpe (bien) pero el indicador de "cargando" se quedaba
+   congelado, y sin ese aviso parece que la pagina se colgo. Aqui cada cosa tiene su alternativa. */
+@keyframes fade-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  html { scroll-behavior: auto; }
+  .cart-drawer { animation: fade-in .15s ease-out; }       /* aparece sin deslizarse */
+  .product-skeleton { animation: none; }                    /* sin brillo recorriendo la tarjeta */
+  .spin { animation-duration: 2.4s; }                       /* sigue girando, mas despacio: es el aviso de que algo carga */
+  .product-card:hover, .suggestion-chip:hover { transform: none; }
 }
 
 /* Tasas de cambio y sugerencias del chef */
