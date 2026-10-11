@@ -13,6 +13,7 @@ Aplicación web para mostrar un catálogo de comida preparada, recibir pedidos a
 - Confirmación con número único de pedido.
 - Acceso administrativo con Supabase Auth.
 - Dashboard, pedidos, productos, categorías, zonas, pagos y configuración del negocio.
+- Botón de abrir y cerrar el negocio en la cabecera del panel, y horario por días y horas (hora de Cuba) con apertura de pedidos la víspera.
 - Eliminación confirmada de pedidos y de zonas que no tengan pedidos asociados.
 - Subida y entrega optimizada de fotografías mediante Cloudinary.
 - Alertas inmediatas de pedidos nuevos en el panel, con notificación del navegador y comprobación de respaldo.

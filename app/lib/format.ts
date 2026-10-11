@@ -305,3 +305,38 @@ export function pedidosDeLaSemana<T extends { fecha_entrega?: string | null; cre
   const lunes = lunesDe(hoy);
   return orders.filter((order) => fechaServicio(order) >= lunes);
 }
+
+export type BusinessStatus = {
+  /** open: se reciben pedidos · waiting: abierto pero fuera de horario · closed: apagado a mano · loading: aun no se sabe */
+  tone: "open" | "waiting" | "closed" | "loading";
+  title: string;
+  detail: string;
+};
+
+/**
+ * Lo que ve el admin sobre el estado de la tienda. El interruptor "abierto" y el
+ * horario son dos cosas distintas, y el boton solo toca la primera: por eso aqui
+ * se explica cuando esta abierto pero el horario aun no deja pedir, para que
+ * nadie piense que el boton no funciono.
+ */
+export function describeBusinessStatus(abierto: boolean, ventana: OrderWindow | null): BusinessStatus {
+  if (!abierto) {
+    return { tone: "closed", title: "Cerrado", detail: "Los clientes ven el menú, pero no pueden pedir. Ábrelo cuando quieras recibir pedidos." };
+  }
+  if (!ventana) return { tone: "loading", title: "Comprobando…", detail: "" };
+  const horario = ventana.hora_apertura && ventana.hora_cierre
+    ? ` · entregas de ${formatHora(ventana.hora_apertura)} a ${formatHora(ventana.hora_cierre)}`
+    : "";
+  if (ventana.acepta) {
+    // "p. m." ya cierra con su punto: solo se anade el final cuando no hay horario.
+    return { tone: "open", title: "Recibiendo pedidos", detail: `Para el ${formatDia(ventana.fecha_entrega)}${horario || "."}` };
+  }
+  if (ventana.abre_en) {
+    return {
+      tone: "waiting",
+      title: "Abierto, esperando al horario",
+      detail: `Los pedidos abren el ${formatMomento(ventana.abre_en)}, para el ${formatDia(ventana.fecha_entrega)}.`,
+    };
+  }
+  return { tone: "waiting", title: "Sin días de trabajo", detail: "Marca al menos un día en el horario para poder recibir pedidos." };
+}

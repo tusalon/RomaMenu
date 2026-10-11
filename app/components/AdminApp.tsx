@@ -7,6 +7,7 @@ import {
   BellRing,
   Archive,
   Boxes,
+  CalendarClock,
   ChefHat,
   ClipboardList,
   History,
@@ -18,6 +19,7 @@ import {
   Menu,
   MessageCircle,
   PackageCheck,
+  Power,
   Pencil,
   Plus,
   Printer,
@@ -29,13 +31,14 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { photoUrl } from "@/app/lib/images";
-import { extrasFromOrder, fechaServicio, formatCurrency, formatDate, formatDia, formatHora, lowStockProducts, orderStatusLabels, pedidosDeLaSemana, stockState, timeSlots } from "@/app/lib/format";
+import { describeBusinessStatus, extrasFromOrder, fechaServicio, formatCurrency, formatDate, formatDia, formatHora, lowStockProducts, orderStatusLabels, pedidosDeLaSemana, stockState, timeSlots } from "@/app/lib/format";
 import { appPath } from "@/app/lib/site-path";
 import {
   archiveProduct,
   deleteProduct,
+  fetchOrderWindow,
   deleteDeliveryZone,
   deleteOrder,
   fetchAdminData,
@@ -45,7 +48,7 @@ import {
   isSupabaseConfigured,
   saveBusinessHours,
   savePushSubscription,
-  saveBusinessSettings,
+  updateBusinessSettings,
   saveCatalogRecord,
   signOutAdmin,
   updateOrder,
@@ -59,12 +62,13 @@ import type {
   DeliveryZone,
   Order,
   OrderStatus,
+  OrderWindow,
   PaymentMethod,
   Product,
   PublicCatalog,
 } from "@/app/lib/types";
 
-type Section = "dashboard" | "orders" | "history" | "products" | "categories" | "zones" | "payments" | "settings";
+type Section = "dashboard" | "orders" | "history" | "hours" | "products" | "categories" | "zones" | "payments" | "settings";
 type NotificationSupport = "checking" | "unsupported" | NotificationPermission;
 type OrderAlert = { order: Order; count: number };
 
@@ -149,6 +153,7 @@ const navItems: Array<{ id: Section; label: string; icon: typeof LayoutDashboard
   { id: "dashboard", label: "Resumen", icon: LayoutDashboard },
   { id: "orders", label: "Pedidos", icon: ClipboardList },
   { id: "history", label: "Historial", icon: History },
+  { id: "hours", label: "Horario", icon: CalendarClock },
   { id: "products", label: "Productos", icon: ShoppingBag },
   { id: "categories", label: "Categorías", icon: Boxes },
   { id: "zones", label: "Zonas de entrega", icon: MapPinned },
@@ -160,6 +165,7 @@ const sectionTitles: Record<Section, { eyebrow: string; title: string }> = {
   dashboard: { eyebrow: "Vista general", title: "Buenos días, Miguelón" },
   orders: { eyebrow: "Este fin de semana", title: "Gestión de pedidos" },
   history: { eyebrow: "Todos los fines de semana", title: "Historial de pedidos" },
+  hours: { eyebrow: "Apertura", title: "Horario y apertura" },
   products: { eyebrow: "Catálogo", title: "Productos" },
   categories: { eyebrow: "Catálogo", title: "Categorías" },
   zones: { eyebrow: "Logística", title: "Zonas de entrega" },
@@ -178,6 +184,11 @@ export function AdminApp() {
   const [orderAlert, setOrderAlert] = useState<OrderAlert | null>(null);
   // Estado del push en este dispositivo: vacio = suscrito o sin intentar; texto = por que no.
   const [pushProblem, setPushProblem] = useState("");
+  // Lo que dice el servidor sobre si ahora se reciben pedidos (hora de Cuba), para mostrarlo tal cual.
+  const [windowInfo, setWindowInfo] = useState<OrderWindow | null>(null);
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState("");
+  const refreshWindow = useCallback(() => fetchOrderWindow().then(setWindowInfo).catch(() => undefined), []);
   const knownOrderIds = useRef(new Set<string>());
 
   useEffect(() => {
@@ -219,6 +230,13 @@ export function AdminApp() {
       void notificationActionListener?.then((listener) => listener.remove());
     };
   }, []);
+
+  useEffect(() => {
+    void refreshWindow();
+    // Cada minuto: el horario cambia solo (jueves 18:00 abre, domingo 20:00 cierra) y el panel tiene que decirlo.
+    const timer = window.setInterval(() => void refreshWindow(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [refreshWindow]);
 
   useEffect(() => {
     if (!orderAlert) return;
@@ -363,6 +381,22 @@ export function AdminApp() {
     }
   }
 
+  async function toggleOpen() {
+    if (!catalog || toggling) return;
+    const next = !catalog.settings.abierto;
+    setToggling(true);
+    setToggleError("");
+    try {
+      await updateBusinessSettings(catalog.settings.id, { abierto: next });
+      setCatalog((current) => current ? { ...current, settings: { ...current.settings, abierto: next } } : current);
+      await refreshWindow();
+    } catch (requestError) {
+      setToggleError(requestError instanceof Error ? requestError.message : "No se pudo cambiar el estado del negocio.");
+    } finally {
+      setToggling(false);
+    }
+  }
+
   if (loading) return <div className="admin-loading"><LoaderCircle className="spin" size={27} /> Preparando el panel…</div>;
   if (!catalog) return <div className="admin-loading">{error || "No fue posible abrir el panel."}</div>;
 
@@ -395,14 +429,18 @@ export function AdminApp() {
             {notificationPermission === "granted" && pushProblem && <button className="admin-mode admin-mode-warning" type="button" title={pushProblem} onClick={() => { void enableNotifications(); window.alert(`Los avisos solo llegan con el panel abierto.\n\n${pushProblem}`); }}><BellRing size={13} /> Avisos sin activar</button>}
             {notificationPermission === "denied" && <span className="admin-mode" title="Permite las notificaciones desde la configuración del navegador.">Alertas bloqueadas</span>}
             {notificationPermission === "unsupported" && <span className="admin-mode">Alertas no disponibles</span>}
+            <button className={`open-toggle ${catalog.settings.abierto ? "is-open" : "is-closed"}`} type="button" onClick={toggleOpen} disabled={toggling}><Power size={16} /> {toggling ? "Guardando…" : catalog.settings.abierto ? "Cerrar negocio" : "Abrir negocio"}</button>
             <a className="button button-secondary button-small" href={appPath("/")} target="_blank" rel="noreferrer">Ver tienda</a>
             <button className="icon-button admin-mobile-menu" type="button" onClick={() => setSidebarOpen((value) => !value)}>{sidebarOpen ? <X size={20} /> : <Menu size={20} />}</button>
           </div>
         </header>
         {error && <div className="inline-notice">{error}</div>}
+        {toggleError && <div className="inline-notice" role="alert">{toggleError}</div>}
+        {!catalog.settings.abierto && section !== "hours" && <div className="inline-notice closed-notice" role="status">Negocio cerrado: los clientes ven el menú pero no pueden pedir. Pulsa <b>Abrir negocio</b> cuando quieras volver a recibir pedidos.</div>}
         {section === "dashboard" && <Dashboard orders={weekOrders} catalog={catalog} onOpenOrders={() => navigate("orders")} />}
         {section === "orders" && <OrdersSection key="semana" orders={weekOrders} catalog={catalog} setOrders={setOrders} heading="Pedidos de este fin de semana" empty="Todavía no hay pedidos este fin de semana. Los anteriores están en Historial." />}
         {section === "history" && <OrdersSection key="historial" orders={orders} catalog={catalog} setOrders={setOrders} heading="Todos los pedidos" empty="No hay pedidos con estos filtros." />}
+        {section === "hours" && <HoursSection catalog={catalog} setCatalog={setCatalog} windowInfo={windowInfo} refreshWindow={refreshWindow} onToggle={toggleOpen} toggling={toggling} />}
         {section === "products" && <ProductsSection catalog={catalog} setCatalog={setCatalog} />}
         {section === "categories" && <CategoriesSection catalog={catalog} setCatalog={setCatalog} />}
         {section === "zones" && <ZonesSection catalog={catalog} setCatalog={setCatalog} />}
@@ -600,13 +638,124 @@ const DIAS_SEMANA = [
   { dia: 0, nombre: "Domingo" },
 ];
 
+/** Lo que no guarda la pantalla de Configuracion: tiene cada uno su sitio. */
+const FUERA_DE_CONFIGURACION = ["id", "created_at", "updated_at", "abierto", "aceptar_fuera_horario", "pedidos_vispera_desde"];
+
+type HoursSectionProps = {
+  catalog: PublicCatalog;
+  setCatalog: React.Dispatch<React.SetStateAction<PublicCatalog | null>>;
+  windowInfo: OrderWindow | null;
+  refreshWindow: () => Promise<unknown>;
+  onToggle: () => void;
+  toggling: boolean;
+};
+
+function HoursSection({ catalog, setCatalog, windowInfo, refreshWindow, onToggle, toggling }: HoursSectionProps) {
+  const settings = catalog.settings;
+  const [hours, setHours] = useState<BusinessHours[]>(() => DIAS_SEMANA.map(({ dia }) => catalog.hours?.find((item) => item.dia_semana === dia) ?? { dia_semana: dia, hora_apertura: null, hora_cierre: null, trabaja: false }));
+  const [vispera, setVispera] = useState<string | null>(settings.pedidos_vispera_desde ?? null);
+  const [anticipado, setAnticipado] = useState(settings.aceptar_fuera_horario);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const status = describeBusinessStatus(settings.abierto, windowInfo);
+
+  function edit(cambio: () => void) { cambio(); setSaved(false); setError(""); }
+  function changeDay(dia: number, patch: Partial<BusinessHours>) { edit(() => setHours((current) => current.map((item) => item.dia_semana === dia ? { ...item, ...patch } : item))); }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const incompleto = hours.find((item) => item.trabaja && (!item.hora_apertura || !item.hora_cierre || item.hora_apertura >= item.hora_cierre));
+    if (incompleto) {
+      setError(`Revisa el horario del ${DIAS_SEMANA.find((d) => d.dia === incompleto.dia_semana)?.nombre}: la apertura tiene que ser antes del cierre.`);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await saveBusinessHours(hours);
+      await updateBusinessSettings(settings.id, { pedidos_vispera_desde: vispera, aceptar_fuera_horario: anticipado });
+      setCatalog((current) => current ? { ...current, hours, settings: { ...current.settings, pedidos_vispera_desde: vispera, aceptar_fuera_horario: anticipado } } : current);
+      await refreshWindow();
+      setSaved(true);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar el horario.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <section className={`admin-card business-status tone-${status.tone}`} aria-live="polite">
+        <span className="business-status-dot" aria-hidden="true" />
+        <div className="business-status-text">
+          <h2>{status.title}</h2>
+          {status.detail && <p>{status.detail}</p>}
+        </div>
+        <button className={`open-toggle open-toggle-lg ${settings.abierto ? "is-open" : "is-closed"}`} type="button" onClick={onToggle} disabled={toggling}>
+          <Power size={18} /> {toggling ? "Guardando…" : settings.abierto ? "Cerrar negocio" : "Abrir negocio"}
+        </button>
+        <p className="business-status-note">Cerrar apaga los pedidos al instante, aunque el horario diga que sí. Abrir los reactiva solo dentro del horario de abajo.</p>
+      </section>
+
+      <form onSubmit={submit}>
+        <section className="admin-card">
+          <div className="admin-card-header"><div><h2>Días y horario</h2><p>Hora de Cuba. Los pedidos para un día abren la víspera a la hora indicada abajo.</p></div></div>
+          <div className="admin-form">
+            <div className="hours-editor span-2">
+              {DIAS_SEMANA.map(({ dia, nombre }) => {
+                const item = hours.find((value) => value.dia_semana === dia)!;
+                return (
+                  <div className={item.trabaja ? "hours-row" : "hours-row is-off"} key={dia}>
+                    <label className="hours-day">
+                      <input type="checkbox" checked={item.trabaja} onChange={(event) => changeDay(dia, { trabaja: event.target.checked, hora_apertura: item.hora_apertura ?? "12:30", hora_cierre: item.hora_cierre ?? "20:00" })} /> {nombre}
+                    </label>
+                    {item.trabaja ? (
+                      <>
+                        <HoraSelect label={`Apertura del ${nombre}`} value={item.hora_apertura} onChange={(value) => changeDay(dia, { hora_apertura: value })} />
+                        <span>a</span>
+                        <HoraSelect label={`Cierre del ${nombre}`} value={item.hora_cierre} onChange={(value) => changeDay(dia, { hora_cierre: value })} />
+                      </>
+                    ) : <span className="hours-closed">Cerrado</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <label className="field span-2"><span>Los pedidos abren la víspera a las</span><HoraSelect label="Hora de la víspera" value={vispera} empty="Solo durante el horario" onChange={(value) => edit(() => setVispera(value))} /></label>
+            <label className="switch-field span-2"><span>Aceptar pedidos a cualquier hora para el próximo día laborable</span><input className="switch" type="checkbox" checked={anticipado} onChange={(event) => edit(() => setAnticipado(event.target.checked))} /></label>
+            {error && <div className="form-error span-2" role="alert">{error}</div>}
+          </div>
+        </section>
+        <div className="settings-save">
+          {saved && <span className="saved-note" role="status">Horario guardado.</span>}
+          <button className="button button-primary" type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar horario"}</button>
+        </div>
+      </form>
+    </>
+  );
+}
+
 function SettingsSection({ catalog, setCatalog }: { catalog: PublicCatalog; setCatalog: React.Dispatch<React.SetStateAction<PublicCatalog | null>> }) {
   const [form, setForm] = useState<BusinessSettings>(catalog.settings);
-  const [hours, setHours] = useState<BusinessHours[]>(() => DIAS_SEMANA.map(({ dia }) => catalog.hours?.find((item) => item.dia_semana === dia) ?? { dia_semana: dia, hora_apertura: null, hora_cierre: null, trabaja: false }));
-  const [hoursError, setHoursError] = useState("");
   const [saving, setSaving] = useState(false);
-  function changeDay(dia: number, patch: Partial<BusinessHours>) { setHours((current) => current.map((item) => item.dia_semana === dia ? { ...item, ...patch } : item)); setHoursError(""); }
-  function change<K extends keyof BusinessSettings>(key: K, value: BusinessSettings[K]) { setForm((current) => ({ ...current, [key]: value })); }
-  async function submit(event: FormEvent) { event.preventDefault(); const incompleto = hours.find((item) => item.trabaja && (!item.hora_apertura || !item.hora_cierre || item.hora_apertura >= item.hora_cierre)); if (incompleto) { setHoursError(`Revisa el horario del ${DIAS_SEMANA.find((d) => d.dia === incompleto.dia_semana)?.nombre}: la apertura tiene que ser antes del cierre.`); return; } setSaving(true); try { await saveBusinessSettings(form); await saveBusinessHours(hours); setCatalog((current) => current ? { ...current, settings: form, hours } : current); } catch (requestError) { setHoursError(requestError instanceof Error ? requestError.message : "No se pudo guardar."); } finally { setSaving(false); } }
-  return <form onSubmit={submit}><div className="settings-columns"><section className="admin-card"><div className="admin-card-header"><div><h2>Identidad del negocio</h2><p>Información visible para los clientes</p></div></div><div className="admin-form"><label className="field span-2"><span>Nombre</span><input value={form.nombre_negocio} onChange={(event) => change("nombre_negocio", event.target.value)} /></label><label className="field span-2"><span>Texto de bienvenida</span><textarea rows={4} value={form.texto_bienvenida} onChange={(event) => change("texto_bienvenida", event.target.value)} /></label><label className="field"><span>WhatsApp</span><input value={form.whatsapp} onChange={(event) => change("whatsapp", event.target.value)} /></label><label className="field"><span>Teléfono</span><input value={form.telefono} onChange={(event) => change("telefono", event.target.value)} /></label><label className="field span-2"><span>Dirección</span><input value={form.direccion} onChange={(event) => change("direccion", event.target.value)} /></label><label className="field"><span>Color principal</span><input type="color" value={form.color_primario} onChange={(event) => change("color_primario", event.target.value)} /></label><label className="field"><span>Color secundario</span><input type="color" value={form.color_secundario} onChange={(event) => change("color_secundario", event.target.value)} /></label></div></section><section className="admin-card"><div className="admin-card-header"><div><h2>Pedidos y horarios</h2><p>Reglas operativas de la tienda</p></div></div><div className="admin-form"><label className="field"><span>Símbolo de moneda</span><input value={form.simbolo_moneda} onChange={(event) => change("simbolo_moneda", event.target.value)} /></label><label className="field"><span>Pedido mínimo</span><input type="number" min="0" value={form.pedido_minimo} onChange={(event) => change("pedido_minimo", Number(event.target.value))} /></label><label className="field span-2"><span>Tiempo estimado</span><input value={form.tiempo_entrega} onChange={(event) => change("tiempo_entrega", event.target.value)} /></label><label className="field span-2"><span>Categoría de sugerencias</span><select value={form.categoria_sugerencias_id ?? ""} onChange={(event) => change("categoria_sugerencias_id", event.target.value || null)}><option value="">No ofrecer ninguna</option>{catalog.categories.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label><label className="switch-field span-2"><span>Recibir pedidos · apágalo en vacaciones</span><input className="switch" type="checkbox" checked={form.abierto} onChange={(event) => change("abierto", event.target.checked)} /></label><label className="switch-field span-2"><span>Aceptar pedidos a cualquier hora para el próximo día laborable</span><input className="switch" type="checkbox" checked={form.aceptar_fuera_horario} onChange={(event) => change("aceptar_fuera_horario", event.target.checked)} /></label><label className="field span-2"><span>Mensaje cuando está abierto</span><textarea rows={2} value={form.mensaje_abierto} onChange={(event) => change("mensaje_abierto", event.target.value)} /></label><label className="field span-2"><span>Mensaje cuando está cerrado</span><textarea rows={2} value={form.mensaje_cerrado} onChange={(event) => change("mensaje_cerrado", event.target.value)} /></label></div></section><section className="admin-card"><div className="admin-card-header"><div><h2>Días y horario</h2><p>Hora de Cuba. Los pedidos para un día abren la víspera a la hora indicada abajo.</p></div></div><div className="admin-form"><div className="hours-editor span-2">{DIAS_SEMANA.map(({ dia, nombre }) => { const item = hours.find((value) => value.dia_semana === dia)!; return <div className={item.trabaja ? "hours-row" : "hours-row is-off"} key={dia}><label className="hours-day"><input type="checkbox" checked={item.trabaja} onChange={(event) => changeDay(dia, { trabaja: event.target.checked, hora_apertura: item.hora_apertura ?? "12:30", hora_cierre: item.hora_cierre ?? "20:00" })} /> {nombre}</label>{item.trabaja ? <><HoraSelect label={`Apertura del ${nombre}`} value={item.hora_apertura} onChange={(value) => changeDay(dia, { hora_apertura: value })} /><span>a</span><HoraSelect label={`Cierre del ${nombre}`} value={item.hora_cierre} onChange={(value) => changeDay(dia, { hora_cierre: value })} /></> : <span className="hours-closed">Cerrado</span>}</div>; })}</div><label className="field span-2"><span>Los pedidos abren la víspera a las</span><HoraSelect label="Hora de la víspera" value={form.pedidos_vispera_desde ?? null} empty="Solo durante el horario" onChange={(value) => change("pedidos_vispera_desde", value)} /></label>{hoursError && <div className="form-error span-2">{hoursError}</div>}</div></section></div><div className="settings-save"><button className="button button-primary" type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar configuración"}</button></div></form>;
+  const [error, setError] = useState("");
+  function change<K extends keyof BusinessSettings>(key: K, value: BusinessSettings[K]) { setForm((current) => ({ ...current, [key]: value })); setError(""); }
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      // Solo lo que esta pantalla edita. La apertura y el horario tienen la suya (Horario),
+      // y guardarlos desde aqui con una copia vieja podria reabrir un negocio recien cerrado.
+      const propios = Object.fromEntries(Object.entries(form).filter(([clave]) => !FUERA_DE_CONFIGURACION.includes(clave))) as Partial<BusinessSettings>;
+      await updateBusinessSettings(catalog.settings.id, propios);
+      setCatalog((current) => current ? { ...current, settings: { ...current.settings, ...propios } } : current);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "No se pudo guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  return <form onSubmit={submit}><div className="settings-columns"><section className="admin-card"><div className="admin-card-header"><div><h2>Identidad del negocio</h2><p>Información visible para los clientes</p></div></div><div className="admin-form"><label className="field span-2"><span>Nombre</span><input value={form.nombre_negocio} onChange={(event) => change("nombre_negocio", event.target.value)} /></label><label className="field span-2"><span>Texto de bienvenida</span><textarea rows={4} value={form.texto_bienvenida} onChange={(event) => change("texto_bienvenida", event.target.value)} /></label><label className="field"><span>WhatsApp</span><input value={form.whatsapp} onChange={(event) => change("whatsapp", event.target.value)} /></label><label className="field"><span>Teléfono</span><input value={form.telefono} onChange={(event) => change("telefono", event.target.value)} /></label><label className="field span-2"><span>Dirección</span><input value={form.direccion} onChange={(event) => change("direccion", event.target.value)} /></label><label className="field"><span>Color principal</span><input type="color" value={form.color_primario} onChange={(event) => change("color_primario", event.target.value)} /></label><label className="field"><span>Color secundario</span><input type="color" value={form.color_secundario} onChange={(event) => change("color_secundario", event.target.value)} /></label></div></section><section className="admin-card"><div className="admin-card-header"><div><h2>Pedidos</h2><p>Mínimo, tiempo de entrega y mensajes. La apertura y el horario están en la sección Horario.</p></div></div><div className="admin-form"><label className="field"><span>Símbolo de moneda</span><input value={form.simbolo_moneda} onChange={(event) => change("simbolo_moneda", event.target.value)} /></label><label className="field"><span>Pedido mínimo</span><input type="number" min="0" value={form.pedido_minimo} onChange={(event) => change("pedido_minimo", Number(event.target.value))} /></label><label className="field span-2"><span>Tiempo estimado</span><input value={form.tiempo_entrega} onChange={(event) => change("tiempo_entrega", event.target.value)} /></label><label className="field span-2"><span>Categoría de sugerencias</span><select value={form.categoria_sugerencias_id ?? ""} onChange={(event) => change("categoria_sugerencias_id", event.target.value || null)}><option value="">No ofrecer ninguna</option>{catalog.categories.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label><label className="field span-2"><span>Mensaje cuando está abierto</span><textarea rows={2} value={form.mensaje_abierto} onChange={(event) => change("mensaje_abierto", event.target.value)} /></label><label className="field span-2"><span>Mensaje cuando está cerrado</span><textarea rows={2} value={form.mensaje_cerrado} onChange={(event) => change("mensaje_cerrado", event.target.value)} /></label></div></section></div><div className="settings-save">{error && <div className="form-error">{error}</div>}<button className="button button-primary" type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar configuración"}</button></div></form>;
 }

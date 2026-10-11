@@ -437,17 +437,29 @@ export async function archiveProduct(productId: string) {
   });
 }
 
-export async function saveBusinessSettings(settings: BusinessSettings) {
+/**
+ * Cambia solo los campos que se le pasan, nunca la fila entera.
+ *
+ * Antes se guardaba la configuracion completa: si la cabecera cerraba el negocio y
+ * despues alguien pulsaba "Guardar configuracion" con una copia vieja del formulario,
+ * la tienda se reabria sola. Cada pantalla guarda ahora unicamente lo suyo.
+ */
+export async function updateBusinessSettings(settingsId: string, patch: Partial<BusinessSettings>) {
   const supabase = getSupabase();
   if (supabase) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("configuracion_negocio")
-      .upsert(settings);
+      .update(patch)
+      .eq("id", settingsId)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
+    // Con RLS, un update sin permiso no da error: simplemente no toca ninguna fila.
+    if (!data) throw new Error("No se pudo guardar: la configuración no existe o tu cuenta no tiene permiso.");
     return;
   }
   const catalog = getDemoCatalog();
-  saveDemoCatalog({ ...catalog, settings });
+  saveDemoCatalog({ ...catalog, settings: { ...catalog.settings, ...patch } });
 }
 
 export async function updateOrder(

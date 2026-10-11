@@ -58,3 +58,28 @@ test("las horas de entrega se ofrecen en 12 h y dentro del horario", async () =>
   assert.equal(deliverySlots(hoy, "15:10")[0], "16:00");
   assert.deepEqual(deliverySlots(null), []);
 });
+
+test("estado del negocio para el admin", async () => {
+  const { describeBusinessStatus } = await import("../app/lib/format.ts");
+  const base = { hoy: "2026-10-11", hora_apertura: "12:30:00", hora_cierre: "20:00:00" };
+
+  // Apagado a mano manda sobre todo lo demas, aunque el horario dijera que si.
+  const cerrado = describeBusinessStatus(false, { ...base, acepta: true, fecha_entrega: "2026-10-11", abre_en: null });
+  assert.equal(cerrado.tone, "closed");
+  assert.match(cerrado.detail, /no pueden pedir/);
+
+  const abierto = describeBusinessStatus(true, { ...base, acepta: true, fecha_entrega: "2026-10-11", abre_en: null });
+  assert.equal(abierto.tone, "open");
+  assert.equal(abierto.detail, "Para el domingo 11 · entregas de 12:30 p. m. a 8:00 p. m.");
+  assert.equal(describeBusinessStatus(true, { ...base, hora_apertura: null, hora_cierre: null, acepta: true, fecha_entrega: "2026-10-11", abre_en: null }).detail, "Para el domingo 11.");
+
+  // Abierto pero fuera de horario: se explica, para que no parezca que el boton fallo.
+  const espera = describeBusinessStatus(true, { ...base, acepta: false, fecha_entrega: "2026-10-16", abre_en: "2026-10-15T18:00:00" });
+  assert.equal(espera.tone, "waiting");
+  assert.equal(espera.detail, "Los pedidos abren el jueves 15 a las 6:00 p. m., para el viernes 16.");
+
+  assert.equal(describeBusinessStatus(true, { ...base, acepta: false, fecha_entrega: null, abre_en: null }).title, "Sin días de trabajo");
+  assert.equal(describeBusinessStatus(true, null).tone, "loading");
+  // Cerrado se sabe sin esperar al servidor.
+  assert.equal(describeBusinessStatus(false, null).tone, "closed");
+});
