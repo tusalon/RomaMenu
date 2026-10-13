@@ -18,12 +18,15 @@ type ProductCardProps = {
 export function ProductCard({ product, category, symbol, inCart = 0, onAdd }: ProductCardProps) {
   const badge = product.precio_anterior ? "Oferta" : product.nuevo ? "Nuevo" : product.recomendado ? "Recomendado" : null;
   const stock = stockState(product);
+  // Cerrado no se pide nada (sin onAdd), y entonces tampoco se marca "agotado": el stock de
+  // hoy no dice nada de la proxima apertura, y un menu en gris no abre el apetito.
+  const agotado = stock.agotado && !!onAdd;
   // Con stock controlado no se deja pedir mas de lo que hay: rebotarlo en el
   // checkout, despues de rellenar todo el formulario, es peor experiencia.
   const sinMas = stock.restantes != null && inCart >= stock.restantes;
 
   return (
-    <article className={stock.agotado ? "product-card sold-out" : "product-card"}>
+    <article className={agotado ? "product-card sold-out" : "product-card"}>
       <div className="product-image">
         <img
           src={photoUrl(product.imagen_url, 640)}
@@ -33,7 +36,7 @@ export function ProductCard({ product, category, symbol, inCart = 0, onAdd }: Pr
           loading="lazy"
         />
         {badge && <span className={`product-badge ${badge.toLowerCase()}`}>{badge}</span>}
-        {stock.agotado && <span className="sold-out-label">Agotado por hoy</span>}
+        {agotado && <span className="sold-out-label">Agotado por hoy</span>}
       </div>
       <div className="product-body">
         <small className="product-category">{category?.nombre}</small>
