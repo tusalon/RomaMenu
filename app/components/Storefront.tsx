@@ -193,8 +193,8 @@ export function Storefront() {
             <div className="product-grid loading-grid">{Array.from({ length: 6 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div>
           ) : products.length ? (
             <div className="product-grid">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} inCart={inCart(product.id)} onAdd={canOrder ? addToCart : undefined} />
+              {products.map((product, index) => (
+                <ProductCard key={product.id} index={index} product={product} category={catalog.categories.find((item) => item.id === product.categoria_id)} symbol={catalog.settings.simbolo_moneda} inCart={inCart(product.id)} onAdd={canOrder ? addToCart : undefined} />
               ))}
             </div>
           ) : (

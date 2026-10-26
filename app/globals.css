@@ -213,7 +213,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
 
 .drawer-layer, .modal-layer { position: fixed; z-index: 100; inset: 0; background: rgba(28, 20, 16, .48); backdrop-filter: blur(6px); }
 .drawer-layer { display: flex; justify-content: flex-end; }
-.cart-drawer { width: min(500px, 100%); height: 100%; display: flex; flex-direction: column; background: var(--surface); box-shadow: -20px 0 60px rgba(30, 19, 15, .17); animation: drawer-in .25s ease-out; }
+.cart-drawer { width: min(500px, 100%); height: 100%; display: flex; flex-direction: column; background: var(--surface); box-shadow: -20px 0 60px rgba(30, 19, 15, .17); animation: drawer-in .45s var(--ease); }
 @keyframes drawer-in { from { transform: translateX(100%); } }
 .drawer-header { min-height: 94px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); }
 .drawer-header h2 { margin: 0; font-family: Georgia, serif; font-size: 25px; }
@@ -643,4 +643,39 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
   .business-status .open-toggle { flex: 1 1 100%; }
   /* En el movil la cabecera ya va justa: el boton de abrir/cerrar ocupa su fila para no quedar apretado. */
   .admin-top-actions .open-toggle { flex: 1 1 100%; order: -1; }
+}
+
+/* Movimiento. Lo bueno de aliciasnailstudio.com, a escala de un menu: una sola curva para todo,
+   entradas escalonadas, un toque al pulsar y nada que parpadee ni se mueva sin motivo. */
+:root { --ease: cubic-bezier(.22, .61, .36, 1); }
+.button, .add-button, .open-toggle, .suggestion-chip, .product-card, .product-image img { transition-timing-function: var(--ease); }
+.button:active:not(:disabled), .add-button:active:not(:disabled), .open-toggle:active:not(:disabled), .suggestion-chip:active { transform: scale(.97); }
+
+/* Portada: el texto sube en cascada y la foto entra la ultima. Solo CSS: sin JS tambien se ve. */
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+.hero-copy > * { animation: rise .9s var(--ease) both; }
+.hero-copy > :nth-child(2) { animation-delay: .1s; }
+.hero-copy > :nth-child(3) { animation-delay: .2s; }
+.hero-copy > :nth-child(4) { animation-delay: .3s; }
+.hero-copy > :nth-child(5) { animation-delay: .4s; }
+.hero-visual { animation: rise 1s var(--ease) .15s both; }
+@keyframes stamp-pulse { 0%, 72%, 100% { transform: rotate(-8deg) scale(1); } 82% { transform: rotate(-8deg) scale(1.1); } 92% { transform: rotate(-8deg) scale(.98); } }
+.hero-stamp { animation: stamp-pulse 4.5s var(--ease) 1.8s infinite; }
+
+/* Platos: aparecen al llegar a ellos (ProductCard pone data-reveal; sin JS se ven siempre). */
+.product-card[data-reveal] { transition: opacity .8s var(--ease), transform .8s var(--ease), box-shadow .22s ease; transition-delay: var(--reveal-delay, 0s); }
+.product-card[data-reveal="pending"] { opacity: 0; transform: translateY(26px); }
+
+/* Carrito y confirmacion: el fondo se funde y la tarjeta sube, no aparecen de golpe. */
+.drawer-layer, .modal-layer { animation: fade-in .3s var(--ease); }
+@keyframes card-in { from { opacity: 0; transform: translateY(24px) scale(.97); } }
+.confirmation-card { animation: card-in .5s var(--ease) .05s both; }
+@media (max-width: 760px) {
+  @keyframes cart-pop { from { opacity: 0; transform: translateX(-50%) translateY(20px) scale(.95); } }
+  .mobile-cart { animation: cart-pop .5s var(--ease) both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-copy > *, .hero-visual, .hero-stamp, .drawer-layer, .modal-layer, .confirmation-card, .mobile-cart { animation: none; }
+  .button:active:not(:disabled), .add-button:active:not(:disabled), .open-toggle:active:not(:disabled), .suggestion-chip:active { transform: none; }
 }
