@@ -679,3 +679,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
   .hero-copy > *, .hero-visual, .hero-stamp, .drawer-layer, .modal-layer, .confirmation-card, .mobile-cart { animation: none; }
   .button:active:not(:disabled), .add-button:active:not(:disabled), .open-toggle:active:not(:disabled), .suggestion-chip:active { transform: none; }
 }
+
+/* Hilo dorado que baja con el scroll (ScrollLine). Corre por los margenes, por encima del contenido, fina y translucida. */
+.storefront main { position: relative; }
+.scroll-line { position: absolute; top: 0; left: 0; z-index: 2; overflow: visible; pointer-events: none; opacity: .62; }
+.scroll-line-dot { fill: var(--accent-text); stroke: #fff7ea; stroke-width: 2; filter: drop-shadow(0 0 7px rgba(214, 160, 91, .9)); transition: opacity .35s var(--ease); }
+@media (max-width: 760px) { .scroll-line { opacity: .5; } }

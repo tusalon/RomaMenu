@@ -24,6 +24,7 @@ import { CartDrawer } from "./CartDrawer";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
 import { ProductCard } from "./ProductCard";
+import { ScrollLine } from "./ScrollLine";
 
 type SortOption = "featured" | "price-asc" | "price-desc";
 
@@ -125,6 +126,7 @@ export function Storefront() {
       ) : null}
       <Header settings={catalog.settings} accepting={windowChecked ? accepting : null} cartCount={cart.count} onCartOpen={() => setCartOpen(true)} />
       <main>
+        <ScrollLine />
         <Hero settings={catalog.settings} onOrder={canOrder ? () => setCartOpen(true) : undefined} />
 
         <section className="recommended-strip" id="recomendados">
