@@ -685,3 +685,24 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
 .scroll-line { position: absolute; top: 0; left: 0; z-index: 2; overflow: visible; pointer-events: none; opacity: .62; }
 .scroll-line-dot { fill: var(--accent-text); stroke: #fff7ea; stroke-width: 2; filter: drop-shadow(0 0 7px rgba(214, 160, 91, .9)); transition: opacity .35s var(--ease); }
 @media (max-width: 760px) { .scroll-line { opacity: .5; } }
+
+/* Panel de pedidos en el movil: el filtro de dia se lee aunque este vacio (iOS lo deja en blanco)
+   y cada pedido es una tarjeta, no una fila que obliga a deslizar para llegar a "Ver detalle". */
+.date-filter { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px 0 12px; border: 1px solid #ded6ce; border-radius: 11px; background: white; color: var(--muted); font-size: var(--fs-ui); }
+.date-filter input[type="date"] { min-height: 40px; min-width: 130px; border: 0; padding: 0 4px; background: transparent; color: var(--ink); }
+.date-filter button { min-height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--accent-text); font: inherit; font-weight: 800; cursor: pointer; }
+@media (max-width: 760px) {
+  .orders-table, .orders-table tbody { display: block; }
+  .orders-table thead { display: none; }
+  .orders-table tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 16px; border-bottom: 1px solid #f0ebe5; }
+  .orders-table tr:last-child { border-bottom: 0; }
+  .orders-table tr.is-new { background: #fffbf2; }
+  .orders-table td, .orders-table tr.is-new td { padding: 0; border: 0; background: transparent; white-space: normal; }
+  .orders-table td:nth-child(1) { grid-row: 1; grid-column: 1; }
+  .orders-table td:nth-child(5) { grid-row: 1; grid-column: 2; text-align: right; }
+  .orders-table td:nth-child(2) { grid-row: 2; grid-column: 1; }
+  .orders-table td:nth-child(4) { grid-row: 2; grid-column: 2; justify-self: end; }
+  .orders-table td:nth-child(3) { grid-row: 3; grid-column: 1 / -1; color: var(--muted); font-size: var(--fs-meta); }
+  .orders-table td:nth-child(6) { grid-row: 4; grid-column: 1 / -1; margin-top: 6px; }
+  .date-filter { flex: 1 1 140px; }
+}
